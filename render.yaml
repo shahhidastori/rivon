@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: rivon-booking-platform
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build:render
+    startCommand: npm run start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: CLIENT_ORIGIN
+        sync: false

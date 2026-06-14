@@ -1,0 +1,177 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum RoomStatus {
+  AVAILABLE
+  OCCUPIED
+  MAINTENANCE
+  UNAVAILABLE
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CHECKED_IN
+  CHECKED_OUT
+  CANCELLED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+  PARTIALLY_PAID
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  BANK_TRANSFER
+}
+
+enum PaymentRecordStatus {
+  PENDING
+  CAPTURED
+  FAILED
+  REFUNDED
+}
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         String   @default("manager")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Amenity {
+  id        String        @id @default(cuid())
+  name      String        @unique
+  icon      String?
+  rooms     RoomAmenity[]
+  createdAt DateTime      @default(now())
+}
+
+model Room {
+  id            String        @id @default(cuid())
+  name          String
+  slug          String        @unique
+  type          String
+  description   String
+  pricePerNight Int
+  beds          Int
+  capacity      Int
+  sizeSqm       Int?
+  status        RoomStatus    @default(AVAILABLE)
+  featured      Boolean       @default(false)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  images        RoomImage[]
+  amenities     RoomAmenity[]
+  bookings      Booking[]
+}
+
+model RoomImage {
+  id        String   @id @default(cuid())
+  roomId    String
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  url       String
+  alt       String?
+  isPrimary Boolean  @default(false)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([roomId])
+}
+
+model RoomAmenity {
+  roomId    String
+  amenityId String
+  room      Room    @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  amenity   Amenity @relation(fields: [amenityId], references: [id], onDelete: Cascade)
+
+  @@id([roomId, amenityId])
+}
+
+model Customer {
+  id        String    @id @default(cuid())
+  firstName String
+  lastName  String
+  email     String
+  phone     String
+  country   String?
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  bookings  Booking[]
+
+  @@index([email])
+}
+
+model Booking {
+  id              String        @id @default(cuid())
+  reference       String        @unique
+  customerId      String
+  customer        Customer      @relation(fields: [customerId], references: [id])
+  roomId          String
+  room            Room          @relation(fields: [roomId], references: [id])
+  checkIn         DateTime
+  checkOut        DateTime
+  guests          Int
+  status          BookingStatus @default(PENDING)
+  paymentStatus   PaymentStatus @default(UNPAID)
+  source          String        @default("website")
+  totalAmount     Int
+  specialRequests String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  payments        Payment[]
+
+  @@index([customerId])
+  @@index([roomId])
+  @@index([checkIn, checkOut])
+  @@index([status])
+}
+
+model Payment {
+  id            String              @id @default(cuid())
+  bookingId     String
+  booking       Booking             @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  method        PaymentMethod
+  amount        Int
+  status        PaymentRecordStatus @default(PENDING)
+  transactionId String?
+  paidAt        DateTime?
+  notes         String?
+  createdAt     DateTime            @default(now())
+
+  @@index([bookingId])
+}
+
+model CmsSection {
+  id           String   @id @default(cuid())
+  key          String   @unique
+  title        String
+  subtitle     String?
+  body         String?
+  imageUrl     String?
+  metadataJson String?
+  updatedAt    DateTime @updatedAt
+}
+
+model CmsPage {
+  id           String   @id @default(cuid())
+  key          String   @unique
+  title        String
+  content      String
+  metadataJson String?
+  updatedAt    DateTime @updatedAt
+}
