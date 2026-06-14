@@ -70,7 +70,7 @@ p {
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  min-height: 72px;
+  min-height: 88px;
   padding: 0 6vw;
   background: rgba(255, 255, 255, 0.94);
   border-bottom: 1px solid rgba(232, 225, 211, 0.75);
@@ -81,15 +81,15 @@ p {
 .admin-logo {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 0;
   font-family: Manrope, Inter, sans-serif;
 }
 
 .brand-mark img,
 .admin-logo img {
   display: block;
-  width: 48px;
-  height: 48px;
+  width: 76px;
+  height: 76px;
   object-fit: contain;
   border-radius: 4px;
   background: var(--paper);
@@ -179,7 +179,7 @@ p {
 
 .hero-section {
   position: relative;
-  min-height: calc(100vh - 72px);
+  min-height: calc(100vh - 88px);
   display: grid;
   align-items: end;
   padding: 10vh 6vw 7vh;
@@ -500,8 +500,8 @@ td select {
 }
 
 .footer-logo-image {
-  width: 118px;
-  height: 118px;
+  width: 148px;
+  height: 148px;
   object-fit: contain;
   border-radius: 4px;
   background: var(--paper);
@@ -915,8 +915,8 @@ td select {
 
 .login-logo {
   display: block;
-  width: 150px;
-  height: 150px;
+  width: 174px;
+  height: 174px;
   object-fit: contain;
   justify-self: center;
   border-radius: 4px;
@@ -945,8 +945,8 @@ td select {
 }
 
 .admin-logo img {
-  width: 62px;
-  height: 62px;
+  width: 92px;
+  height: 92px;
 }
 
 .admin-sidebar nav {
@@ -1292,7 +1292,7 @@ td small {
     position: absolute;
     left: 4vw;
     right: 4vw;
-    top: 76px;
+    top: 92px;
     display: none;
     flex-direction: column;
     align-items: stretch;
@@ -1377,6 +1377,11 @@ td small {
 
   .public-header {
     padding: 0 16px;
+  }
+
+  .brand-mark img {
+    width: 64px;
+    height: 64px;
   }
 
   .hero-section {

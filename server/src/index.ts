@@ -27,7 +27,7 @@ app.use(express.json({ limit: "2mb" }));
 app.use("/uploads", express.static(path.resolve(__dirname, "../uploads")));
 
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, service: "rivon-booking-platform" });
+  res.json({ ok: true, service: "hotel-booking-platform" });
 });
 
 app.use("/api/auth", authRouter);
@@ -66,5 +66,5 @@ app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
 });
 
 app.listen(port, () => {
-  console.log(`Rivon booking API running on http://localhost:${port}`);
+  console.log(`Hotel booking API running on http://localhost:${port}`);
 });

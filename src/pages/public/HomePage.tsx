@@ -40,7 +40,7 @@ export function HomePage() {
       <section className="hero-section" style={{ backgroundImage: `url(${hero?.imageUrl})` }}>
         <div className="hero-overlay" />
         <div className="hero-content">
-          <span>{hero?.subtitle || "Rivon"}</span>
+          <span>{hero?.subtitle || "Skardu, Pakistan"}</span>
           <h1>{hero?.title || "Peaceful Stays Beside Skardu's Mountains"}</h1>
           <p>{hero?.body}</p>
           <div className="hero-actions">
@@ -84,7 +84,7 @@ export function HomePage() {
             <span>Guest Rating</span>
           </div>
         </div>
-        <img src={cms?.sections.about?.imageUrl || ""} alt="Rivon hotel near Skardu mountains" />
+        <img src={cms?.sections.about?.imageUrl || ""} alt="Hotel near Skardu mountains" />
       </section>
 
       <section className="content-band center-band">
@@ -145,7 +145,7 @@ export function HomePage() {
 
       <section className="gallery-strip">
         {gallery.slice(0, 5).map((src: any, index) => (
-          <img key={String(src)} src={String(src)} alt={`Rivon Skardu gallery ${index + 1}`} />
+          <img key={String(src)} src={String(src)} alt={`Skardu gallery ${index + 1}`} />
         ))}
       </section>
 

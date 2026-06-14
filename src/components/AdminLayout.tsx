@@ -2,7 +2,7 @@ import { NavLink, Navigate, Outlet, useNavigate } from "react-router-dom";
 import { BedDouble, BookOpenCheck, LayoutDashboard, LogOut, PanelLeft, Users, Wand2 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import rivonLogo from "../assets/rivon-logo.png";
+import brandLogo from "../assets/brand-logo.png";
 
 export function AdminLayout() {
   const { admin, loading, logout } = useAuth();
@@ -24,8 +24,7 @@ export function AdminLayout() {
     <div className="admin-shell">
       <aside className={open ? "admin-sidebar open" : "admin-sidebar"}>
         <div className="admin-logo">
-          <img src={rivonLogo} alt="Rivon Resort logo" />
-          <strong>Rivon</strong>
+          <img src={brandLogo} alt="Hotel logo" />
         </div>
         <nav>
           {navItems.map(([label, href, Icon]) => (

@@ -2,12 +2,12 @@ import { FormEvent, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { Button, Field } from "../../components/ui";
-import rivonLogo from "../../assets/rivon-logo.png";
+import brandLogo from "../../assets/brand-logo.png";
 
 export function LoginPage() {
   const { admin, login } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState("admin@rivon.test");
+  const [email, setEmail] = useState("admin@hotel.test");
   const [password, setPassword] = useState("password123");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -31,9 +31,9 @@ export function LoginPage() {
   return (
     <main className="admin-login-page">
       <form className="login-card" onSubmit={submit}>
-        <img className="login-logo" src={rivonLogo} alt="Rivon Resort logo" />
+        <img className="login-logo" src={brandLogo} alt="Hotel logo" />
         <h1>Admin Login</h1>
-        <p>Manage Rivon rooms, bookings, customers, and website content.</p>
+        <p>Manage rooms, bookings, customers, and website content.</p>
         {error ? <div className="alert error">{error}</div> : null}
         <Field label="Email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
         <Field label="Password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} />

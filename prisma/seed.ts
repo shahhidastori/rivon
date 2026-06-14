@@ -32,14 +32,14 @@ async function main() {
   await prisma.adminUser.deleteMany();
 
   await prisma.adminUser.upsert({
-    where: { email: "admin@rivon.test" },
+    where: { email: "admin@hotel.test" },
     update: {
-      name: "Rivon Admin",
+      name: "Hotel Admin",
       passwordHash
     },
     create: {
-      name: "Rivon Admin",
-      email: "admin@rivon.test",
+      name: "Hotel Admin",
+      email: "admin@hotel.test",
       passwordHash,
       role: "administrator"
     }
@@ -193,7 +193,7 @@ async function main() {
           method: "CARD",
           amount: demoRoom.pricePerNight,
           status: "CAPTURED",
-          transactionId: "rivon-demo-card-001",
+          transactionId: "demo-card-001",
           paidAt: new Date()
         }
       }
@@ -204,7 +204,7 @@ async function main() {
     {
       key: "hero",
       title: "Peaceful Stays Beside Skardu's Mountains",
-      subtitle: "Rivon",
+      subtitle: "Skardu, Pakistan",
       body:
         "A Skardu-based retreat for lake days, valley drives, cold desert sunsets, and warm local hospitality in Gilgit-Baltistan.",
       imageUrl: skarduImages[0],
@@ -213,9 +213,9 @@ async function main() {
     {
       key: "about",
       title: "A quiet base for northern Pakistan journeys",
-      subtitle: "About Rivon",
+      subtitle: "About the Stay",
       body:
-        "Rivon welcomes travelers to Skardu with mountain-facing rooms, peaceful common spaces, local breakfast, and helpful guidance for valleys, lakes, and nearby scenic routes.",
+        "Our team welcomes travelers to Skardu with mountain-facing rooms, peaceful common spaces, local breakfast, and helpful guidance for valleys, lakes, and nearby scenic routes.",
       imageUrl: skarduImages[1]
     },
     {
@@ -233,7 +233,7 @@ async function main() {
     },
     {
       key: "gallery",
-      title: "Skardu around Rivon",
+      title: "Skardu around the hotel",
       subtitle: "Gallery",
       body: "Lakes, valleys, mountain roads, and quiet northern Pakistan scenery near your stay.",
       metadataJson: JSON.stringify(skarduImages)
@@ -245,7 +245,7 @@ async function main() {
       metadataJson: JSON.stringify([
         {
           name: "Mariam S.",
-          quote: "Rivon felt peaceful after long days around Kachura Lake and Shigar Valley.",
+          quote: "The stay felt peaceful after long days around Kachura Lake and Shigar Valley.",
           rating: 5
         },
         {
@@ -262,12 +262,12 @@ async function main() {
     },
     {
       key: "contact",
-      title: "Visit Rivon in Skardu",
+      title: "Visit us in Skardu",
       subtitle: "Contact",
       body: "Satpara Road, Skardu, Gilgit-Baltistan, Pakistan",
       metadataJson: JSON.stringify({
         phone: "+92 5815 555 019",
-        email: "stay@rivon.test",
+        email: "reservations@yourdomain.com",
         map: "https://maps.google.com"
       })
     }
@@ -286,13 +286,13 @@ async function main() {
     update: {
       title: "Terms & Conditions",
       content:
-        "Bookings at Rivon are subject to room availability. Guests may cancel confirmed bookings up to 24 hours before check-in unless a special rate says otherwise."
+        "Bookings are subject to room availability. Guests may cancel confirmed bookings up to 24 hours before check-in unless a special rate says otherwise."
     },
     create: {
       key: "terms",
       title: "Terms & Conditions",
       content:
-        "Bookings at Rivon are subject to room availability. Guests may cancel confirmed bookings up to 24 hours before check-in unless a special rate says otherwise."
+        "Bookings are subject to room availability. Guests may cancel confirmed bookings up to 24 hours before check-in unless a special rate says otherwise."
     }
   });
 
@@ -301,13 +301,13 @@ async function main() {
     update: {
       title: "Privacy Policy",
       content:
-        "Rivon uses guest information to manage bookings, process payments, and provide stay-related service. We do not sell guest data."
+        "We use guest information to manage bookings, process payments, and provide stay-related service. We do not sell guest data."
     },
     create: {
       key: "privacy",
       title: "Privacy Policy",
       content:
-        "Rivon uses guest information to manage bookings, process payments, and provide stay-related service. We do not sell guest data."
+        "We use guest information to manage bookings, process payments, and provide stay-related service. We do not sell guest data."
     }
   });
 }

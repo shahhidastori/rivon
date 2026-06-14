@@ -230,8 +230,7 @@ export function BookingPage() {
               <p>Your booking reference is:</p>
               <strong>{confirmed.reference}</strong>
               <p>
-                Rivon sent the confirmation to {confirmed.customer.email}. Use your reference and email to manage this
-                booking.
+                We sent the confirmation to {confirmed.customer.email}. Use your reference and email to manage this booking.
               </p>
               <div className="hero-actions">
                 <Link to="/lookup" className="btn btn-dark">

@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: rivon-booking-platform
+    name: hotel-booking-platform
     runtime: node
     plan: free
     buildCommand: npm ci && npm run build:render

@@ -11,7 +11,7 @@ import type {
   Room
 } from "../types";
 
-const TOKEN_KEY = "rivon-admin-token";
+const TOKEN_KEY = "hotel-admin-token";
 
 type RequestOptions = RequestInit & {
   auth?: boolean;

@@ -1,4 +1,4 @@
-# Rivon Hotel Booking Platform
+# Hotel Booking Platform
 
 A complete Skardu-based hotel website and booking management system built from the provided Visily board direction: image-led public pages, gold CTAs, dark footer/admin surfaces, compact cards, and operational admin tables.
 
@@ -60,7 +60,7 @@ API: http://localhost:4000
 
 ## Demo Admin Login
 
-- Email: `admin@rivon.test`
+- Email: `admin@hotel.test`
 - Password: `password123`
 
 ## Free/Low-Cost Deployment
@@ -76,7 +76,7 @@ The lowest-cost deployment path for this project is:
 Create an empty GitHub repository, then connect this local project:
 
 ```bash
-git remote add origin https://github.com/<your-github-user>/rivon-booking-platform.git
+git remote add origin https://github.com/<your-github-user>/hotel-booking-platform.git
 git push -u origin main
 ```
 
@@ -126,7 +126,6 @@ The included `render.yaml` already defines the service name, free plan, build co
 
 In Render, add the custom domain you want to use, for example:
 
-- `rivon.example.com`
 - `www.example.com`
 - `example.com`
 
