@@ -71,6 +71,34 @@ The lowest-cost deployment path for this project is:
 - Supabase Free Postgres for persistent production data
 - Your custom domain pointed at Render
 
+### 1. Push the app to GitHub
+
+Create an empty GitHub repository, then connect this local project:
+
+```bash
+git remote add origin https://github.com/<your-github-user>/rivon-booking-platform.git
+git push -u origin main
+```
+
+### 2. Create the Supabase database
+
+Create a Supabase project and copy the Postgres connection string. Use that connection string for the production database scripts:
+
+```bash
+DATABASE_URL="<Supabase Postgres connection string>" npm run db:prod:push
+DATABASE_URL="<Supabase Postgres connection string>" npm run db:prod:seed
+```
+
+After running production Prisma scripts locally, run this to switch the local Prisma Client back to the SQLite schema:
+
+```bash
+npm run prisma:generate
+```
+
+### 3. Create the Render web service
+
+Create a new Render Web Service from the GitHub repository.
+
 Render build command:
 
 ```bash
@@ -92,14 +120,17 @@ JWT_SECRET=<long random secret>
 CLIENT_ORIGIN=https://your-domain.com
 ```
 
-Before first production deploy, initialize and seed Supabase:
+The included `render.yaml` already defines the service name, free plan, build command, start command, and health check. In the Render dashboard, set the environment variables and trigger the first deploy.
 
-```bash
-DATABASE_URL="<Supabase Postgres connection string>" npm run db:prod:push
-DATABASE_URL="<Supabase Postgres connection string>" npm run db:prod:seed
-```
+### 4. Connect the GoDaddy domain
 
-After running the production Prisma scripts locally, run `npm run prisma:generate` to switch the local Prisma Client back to the SQLite schema.
+In Render, add the custom domain you want to use, for example:
+
+- `rivon.example.com`
+- `www.example.com`
+- `example.com`
+
+Render will show the exact DNS records to create. In GoDaddy, open the domain DNS manager and add or update those records. After DNS verifies in Render, HTTPS is issued automatically.
 
 Note: Render's free service can sleep after inactivity, so the first request after a quiet period may be slow. Room image uploads use the service filesystem, which is not durable on free hosting. For live operations, prefer hosted image URLs or add free object storage later.
 
