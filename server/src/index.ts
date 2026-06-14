@@ -9,6 +9,7 @@ import { requireAdmin } from "./auth.js";
 import { authRouter } from "./routes/auth.js";
 import { publicRouter } from "./routes/public.js";
 import { adminRouter } from "./routes/admin.js";
+import { ensureBaselineContent } from "./bootstrap.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -65,6 +66,13 @@ app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
   return res.status(500).json({ message: "Unexpected server error." });
 });
 
-app.listen(port, () => {
-  console.log(`Hotel booking API running on http://localhost:${port}`);
-});
+ensureBaselineContent()
+  .then(() => {
+    app.listen(port, () => {
+      console.log(`Hotel booking API running on http://localhost:${port}`);
+    });
+  })
+  .catch((error) => {
+    console.error("Failed to initialize hotel booking API.", error);
+    process.exit(1);
+  });

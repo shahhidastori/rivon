@@ -3,7 +3,7 @@ services:
     name: hotel-booking-platform
     runtime: node
     plan: free
-    buildCommand: npm ci && npm run build:render
+    buildCommand: npm ci && npm run db:prod:push && npm run build:render
     startCommand: npm run start
     healthCheckPath: /api/health
     envVars:
@@ -12,6 +12,8 @@ services:
       - key: DATABASE_URL
         sync: false
       - key: JWT_SECRET
-        sync: false
+        generateValue: true
       - key: CLIENT_ORIGIN
-        sync: false
+        value: https://hotel-booking-platform.onrender.com
+      - key: AUTO_SEED
+        value: "true"
