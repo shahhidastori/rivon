@@ -1,19 +1,44 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import { addDays, differenceInCalendarDays, format } from "date-fns";
-import { CheckCircle2, CreditCard, Landmark, Wallet } from "lucide-react";
+import { Link, useParams, useSearchParams } from "react-router-dom";
+import { addDays as addDateFnsDays, differenceInCalendarDays, format } from "date-fns";
+import {
+  ArrowLeft,
+  BedDouble,
+  CalendarDays,
+  Car,
+  CheckCircle2,
+  Coffee,
+  CreditCard,
+  Landmark,
+  ShieldCheck,
+  Sparkles,
+  Users,
+  Wallet,
+  Wifi
+} from "lucide-react";
 import type { Booking, PaymentMethod, Room } from "../../types";
 import { currency, dateLabel, publicApi } from "../../lib/api";
 import { Button, Field, SelectField, TextArea } from "../../components/ui";
+import { GlassDatePicker, addDays, fromDateInputValue, toDateInputValue } from "../../components/GlassDatePicker";
 
-const paymentMethods: Array<{ value: PaymentMethod; label: string; icon: typeof Wallet }> = [
-  { value: "CASH", label: "Cash at Property", icon: Wallet },
-  { value: "CARD", label: "Card", icon: CreditCard },
-  { value: "BANK_TRANSFER", label: "Bank Transfer", icon: Landmark }
+const paymentMethods: Array<{ value: PaymentMethod; label: string; description: string; icon: typeof Wallet }> = [
+  { value: "CARD", label: "Credit/Debit Card", description: "Admin confirms the secure payment link.", icon: CreditCard },
+  { value: "BANK_TRANSFER", label: "Bank Transfer", description: "Verify within 24 hours.", icon: Landmark },
+  { value: "CASH", label: "Cash on Arrival", description: "Pay at the front desk.", icon: Wallet }
+];
+
+const stayEnhancements = [
+  { title: "Airport Transfer", body: "Luxury sedan pickup from Skardu Airport.", price: "On request", icon: Car },
+  { title: "Local Breakfast", body: "Traditional breakfast served with mountain tea.", price: "Included", icon: Coffee },
+  { title: "Tour Assistance", body: "Concierge guidance for lakes, valleys, and viewpoints.", price: "Included", icon: Sparkles }
 ];
 
 export function BookingPage() {
   const { slug } = useParams();
+  const [params] = useSearchParams();
+  const initialCheckIn = params.get("checkIn") || format(addDateFnsDays(new Date(), 1), "yyyy-MM-dd");
+  const initialCheckOut = params.get("checkOut") || format(addDateFnsDays(new Date(), 3), "yyyy-MM-dd");
+  const initialGuests = Math.max(1, Number(params.get("guests") || 2));
   const [rooms, setRooms] = useState<Room[]>([]);
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -21,9 +46,9 @@ export function BookingPage() {
   const [error, setError] = useState("");
   const [confirmed, setConfirmed] = useState<Booking | null>(null);
   const [form, setForm] = useState({
-    checkIn: format(addDays(new Date(), 1), "yyyy-MM-dd"),
-    checkOut: format(addDays(new Date(), 3), "yyyy-MM-dd"),
-    guests: 2,
+    checkIn: initialCheckIn,
+    checkOut: initialCheckOut,
+    guests: initialGuests,
     roomId: "",
     firstName: "",
     lastName: "",
@@ -49,9 +74,41 @@ export function BookingPage() {
   const selectedRoom = rooms.find((room) => room.id === form.roomId);
   const nights = Math.max(1, differenceInCalendarDays(new Date(form.checkOut), new Date(form.checkIn)));
   const total = selectedRoom ? nights * selectedRoom.pricePerNight : 0;
+  const progressStep = step <= 2 ? 1 : step === 3 ? 2 : 3;
+  const selectedPayment = paymentMethods.find((method) => method.value === form.paymentMethod) || paymentMethods[2];
+  const bookingSearchParams = new URLSearchParams({
+    checkIn: form.checkIn,
+    checkOut: form.checkOut,
+    guests: String(Math.max(1, Number(form.guests) || 1))
+  });
+  const roomDetailBackLink = selectedRoom
+    ? {
+        pathname: `/rooms/${selectedRoom.slug}`,
+        search: `?${bookingSearchParams.toString()}`
+      }
+    : "/rooms";
+
+  const roomOptions = useMemo(
+    () =>
+      rooms.map((room) => ({
+        value: room.id,
+        label: `${room.name} - ${currency(room.pricePerNight)} / night`
+      })),
+    [rooms]
+  );
 
   function update(key: keyof typeof form, value: string | number) {
     setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  function updateCheckIn(value: string) {
+    setForm((current) => {
+      const next = { ...current, checkIn: value };
+      if (fromDateInputValue(current.checkOut) <= fromDateInputValue(value)) {
+        next.checkOut = toDateInputValue(addDays(fromDateInputValue(value), 1));
+      }
+      return next;
+    });
   }
 
   function next() {
@@ -104,120 +161,174 @@ export function BookingPage() {
   if (loading) return <div className="page-loader">Loading booking flow...</div>;
 
   return (
-    <main className="page-wrap booking-page">
-      <section className="page-hero compact">
-        <span className="section-kicker">Booking</span>
-        <h1>Reserve your stay</h1>
-      </section>
+    <main className="page-wrap booking-page premium-booking-page">
+      <Link to={roomDetailBackLink} className="back-link" viewTransition>
+        <ArrowLeft size={14} />
+        Back to Room Details
+      </Link>
 
-      <div className="booking-shell">
-        <aside className="stepper-card">
-          {["Dates & Guests", "Select Room", "Customer Details", "Review & Payment", "Confirmation"].map(
-            (label, index) => (
-              <button key={label} className={step === index + 1 ? "active" : step > index + 1 ? "done" : ""}>
-                <span>{index + 1}</span>
-                {label}
-              </button>
-            )
-          )}
-        </aside>
+      <div className="booking-progress-line" aria-label="Booking progress">
+        {["Review Stay", "Guest Details", "Payment"].map((label, index) => (
+          <div key={label} className={progressStep >= index + 1 ? "active" : ""}>
+            <span>{index + 1}</span>
+            <strong>{label}</strong>
+          </div>
+        ))}
+      </div>
 
-        <form className="booking-panel" onSubmit={submit}>
+      <form className="booking-workspace" onSubmit={submit}>
+        <section className="booking-main-panel">
           {error ? <div className="alert error">{error}</div> : null}
 
           {step === 1 ? (
-            <div className="form-grid">
-              <Field label="Check-in" type="date" value={form.checkIn} onChange={(event) => update("checkIn", event.target.value)} />
-              <Field
-                label="Check-out"
-                type="date"
-                value={form.checkOut}
-                onChange={(event) => update("checkOut", event.target.value)}
-              />
-              <Field
-                label="Guests"
-                type="number"
-                min={1}
-                value={form.guests}
-                onChange={(event) => update("guests", Number(event.target.value))}
-              />
+            <div className="booking-step-content">
+              <span className="section-kicker">1. Review Your Selection</span>
+              <div className="review-selection-card">
+                {selectedRoom ? <img src={selectedRoom.images[0]?.url} alt={selectedRoom.name} /> : null}
+                <div>
+                  <h2>Choose dates and guests</h2>
+                  <p>Start with your arrival details. You can still change the room before guest details.</p>
+                  <div className="form-grid">
+                    <GlassDatePicker
+                      label="Check-in"
+                      value={form.checkIn}
+                      minDate={format(addDateFnsDays(new Date(), 1), "yyyy-MM-dd")}
+                      onChange={updateCheckIn}
+                    />
+                    <GlassDatePicker
+                      label="Check-out"
+                      value={form.checkOut}
+                      minDate={toDateInputValue(addDays(fromDateInputValue(form.checkIn), 1))}
+                      onChange={(value) => update("checkOut", value)}
+                    />
+                    <Field
+                      label="Guests"
+                      type="number"
+                      min={1}
+                      value={form.guests}
+                      onChange={(event) => update("guests", Number(event.target.value))}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           ) : null}
 
           {step === 2 ? (
-            <div className="select-room-grid">
-              {rooms.map((room) => (
-                <button
-                  type="button"
-                  className={form.roomId === room.id ? "booking-room active" : "booking-room"}
-                  key={room.id}
-                  onClick={() => update("roomId", room.id)}
-                >
-                  <img src={room.images[0]?.url} alt={room.name} />
-                  <span>{room.type}</span>
-                  <strong>{room.name}</strong>
-                  <small>
-                    {currency(room.pricePerNight)} / night · {room.capacity} guests
-                  </small>
-                </button>
-              ))}
+            <div className="booking-step-content">
+              <span className="section-kicker">1. Review Your Selection</span>
+              <h1>Select Your Room</h1>
+              <SelectField label="Quick room selection" value={form.roomId} onChange={(event) => update("roomId", event.target.value)}>
+                {roomOptions.map((room) => (
+                  <option key={room.value} value={room.value}>
+                    {room.label}
+                  </option>
+                ))}
+              </SelectField>
+              <div className="select-room-grid">
+                {rooms.map((room) => (
+                  <button
+                    type="button"
+                    className={form.roomId === room.id ? "booking-room active" : "booking-room"}
+                    key={room.id}
+                    onClick={() => update("roomId", room.id)}
+                  >
+                    <img src={room.images[0]?.url} alt={room.name} />
+                    <span>{room.type}</span>
+                    <strong>{room.name}</strong>
+                    <small>
+                      {currency(room.pricePerNight)} / night - up to {room.capacity} guests
+                    </small>
+                  </button>
+                ))}
+              </div>
             </div>
           ) : null}
 
           {step === 3 ? (
-            <div className="form-grid">
-              <Field label="First name" value={form.firstName} onChange={(event) => update("firstName", event.target.value)} />
-              <Field label="Last name" value={form.lastName} onChange={(event) => update("lastName", event.target.value)} />
-              <Field label="Email" type="email" value={form.email} onChange={(event) => update("email", event.target.value)} />
-              <Field label="Phone" value={form.phone} onChange={(event) => update("phone", event.target.value)} />
-              <Field label="Country" value={form.country} onChange={(event) => update("country", event.target.value)} />
-              <TextArea
-                label="Special requests"
-                value={form.specialRequests}
-                onChange={(event) => update("specialRequests", event.target.value)}
-              />
+            <div className="booking-step-content">
+              <span className="section-kicker">2. Guest Details</span>
+              <h1>Who should we welcome?</h1>
+              <div className="form-grid">
+                <Field label="First name" value={form.firstName} onChange={(event) => update("firstName", event.target.value)} />
+                <Field label="Last name" value={form.lastName} onChange={(event) => update("lastName", event.target.value)} />
+                <Field label="Email" type="email" value={form.email} onChange={(event) => update("email", event.target.value)} />
+                <Field label="Phone" value={form.phone} onChange={(event) => update("phone", event.target.value)} />
+                <Field label="Country" value={form.country} onChange={(event) => update("country", event.target.value)} />
+                <TextArea
+                  label="Special requests"
+                  value={form.specialRequests}
+                  onChange={(event) => update("specialRequests", event.target.value)}
+                />
+              </div>
             </div>
           ) : null}
 
           {step === 4 ? (
-            <div className="review-layout">
-              <section>
-                <h2>Booking Summary</h2>
-                <dl className="summary-list">
-                  <div>
-                    <dt>Room</dt>
-                    <dd>{selectedRoom?.name}</dd>
+            <div className="booking-step-content payment-step">
+              <span className="section-kicker">3. Payment</span>
+              <h1>Review and secure your stay</h1>
+
+              <section className="review-selection-card compact-review-card">
+                {selectedRoom ? <img src={selectedRoom.images[0]?.url} alt={selectedRoom.name} /> : null}
+                <div>
+                  <h2>{selectedRoom?.name}</h2>
+                  <div className="booking-mini-facts">
+                    <span>
+                      <CalendarDays size={14} /> {dateLabel(form.checkIn)} - {dateLabel(form.checkOut)}
+                    </span>
+                    <span>
+                      <Users size={14} /> {form.guests} guests
+                    </span>
+                    <span>
+                      <BedDouble size={14} /> {selectedRoom?.beds} beds
+                    </span>
+                    <span>
+                      <Wifi size={14} /> High-speed WiFi
+                    </span>
                   </div>
-                  <div>
-                    <dt>Dates</dt>
-                    <dd>
-                      {dateLabel(form.checkIn)} - {dateLabel(form.checkOut)}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Guests</dt>
-                    <dd>{form.guests}</dd>
-                  </div>
-                  <div>
-                    <dt>Total</dt>
-                    <dd>{currency(total)}</dd>
-                  </div>
-                </dl>
+                </div>
+                <strong>
+                  {currency(selectedRoom?.pricePerNight || 0)} <small>/ night</small>
+                </strong>
               </section>
-              <section>
-                <h2>Payment Method</h2>
+
+              <section className="enhancement-list">
+                <h2>Enhance Your Stay</h2>
+                {stayEnhancements.map(({ title, body, price, icon: Icon }) => (
+                  <article key={title}>
+                    <Icon size={18} />
+                    <div>
+                      <strong>{title}</strong>
+                      <span>{body}</span>
+                    </div>
+                    <em>{price}</em>
+                  </article>
+                ))}
+              </section>
+
+              <section className="secure-payment-block">
+                <h2>Secure Payment</h2>
                 <div className="payment-grid">
-                  {paymentMethods.map(({ value, label, icon: Icon }) => (
+                  {paymentMethods.map(({ value, label, description, icon: Icon }) => (
                     <button
                       type="button"
                       className={form.paymentMethod === value ? "payment-option active" : "payment-option"}
                       key={value}
                       onClick={() => update("paymentMethod", value)}
                     >
-                      <Icon size={20} />
-                      {label}
+                      <Icon size={22} />
+                      <strong>{label}</strong>
+                      <span>{description}</span>
                     </button>
                   ))}
+                </div>
+                <div className="payment-instructions">
+                  <ShieldCheck size={18} />
+                  <p>
+                    Selected method: <strong>{selectedPayment.label}</strong>. Your reservation request is submitted
+                    securely, and payment status is managed by the hotel team.
+                  </p>
                 </div>
               </section>
             </div>
@@ -225,12 +336,13 @@ export function BookingPage() {
 
           {step === 5 && confirmed ? (
             <div className="confirmation-card">
-              <CheckCircle2 size={44} />
+              <CheckCircle2 size={52} />
               <h2>Booking Submitted</h2>
               <p>Your booking reference is:</p>
               <strong>{confirmed.reference}</strong>
               <p>
-                We sent the confirmation to {confirmed.customer.email}. Use your reference and email to manage this booking.
+                We sent the confirmation to {confirmed.customer.email}. Use your reference and email to manage this
+                booking.
               </p>
               <div className="hero-actions">
                 <Link to="/lookup" className="btn btn-dark">
@@ -254,13 +366,52 @@ export function BookingPage() {
                 </Button>
               ) : (
                 <Button type="submit" loading={submitting}>
-                  Submit Booking
+                  Confirm & Book Now
                 </Button>
               )}
             </div>
           ) : null}
-        </form>
-      </div>
+        </section>
+
+        <aside className="booking-summary-card booking-total-card">
+          <span className="section-kicker">Transaction in PKR</span>
+          <h2>Booking Summary</h2>
+          {selectedRoom ? (
+            <>
+              <div className="summary-room-line">
+                <strong>{selectedRoom.name}</strong>
+                <span>{currency(total)}</span>
+                <small>
+                  {nights} nights x {currency(selectedRoom.pricePerNight)}
+                </small>
+              </div>
+              <dl className="summary-list compact-summary">
+                <div>
+                  <dt>Subtotal</dt>
+                  <dd>{currency(total)}</dd>
+                </div>
+                <div>
+                  <dt>Booking fees</dt>
+                  <dd>PKR 0</dd>
+                </div>
+                <div>
+                  <dt>Total payable</dt>
+                  <dd>{currency(total)}</dd>
+                </div>
+              </dl>
+            </>
+          ) : null}
+          <p className="booking-assurance">
+            <ShieldCheck size={16} />
+            Bookings are 100% secure and confirmed by the hotel team.
+          </p>
+          {step === 4 ? (
+            <Button type="submit" loading={submitting}>
+              Confirm & Book Now
+            </Button>
+          ) : null}
+        </aside>
+      </form>
     </main>
   );
 }

@@ -1,14 +1,36 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { BedDouble, CalendarDays, Car, Coffee, MapPin, Sparkles, Star, Waves, Wifi } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { BedDouble, Car, Coffee, MapPin, Sparkles, Star, Users, Waves, Wifi } from "lucide-react";
 import type { CmsPayload, Room } from "../../types";
 import { currency, publicApi } from "../../lib/api";
-import { Button } from "../../components/ui";
+import { GlassDatePicker, addDays, fromDateInputValue, toDateInputValue } from "../../components/GlassDatePicker";
 
 export function HomePage() {
+  const navigate = useNavigate();
+  const defaultCheckIn = useMemo(() => toDateInputValue(addDays(new Date(), 1)), []);
+  const defaultCheckOut = useMemo(() => toDateInputValue(addDays(new Date(), 4)), []);
+  const [checkIn, setCheckIn] = useState(defaultCheckIn);
+  const [checkOut, setCheckOut] = useState(defaultCheckOut);
+  const [guests, setGuests] = useState(2);
   const [cms, setCms] = useState<CmsPayload | null>(null);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const updateCheckIn = (value: string) => {
+    setCheckIn(value);
+    if (fromDateInputValue(checkOut) <= fromDateInputValue(value)) {
+      setCheckOut(toDateInputValue(addDays(fromDateInputValue(value), 1)));
+    }
+  };
+
+  const searchRooms = () => {
+    const params = new URLSearchParams({
+      checkIn,
+      checkOut,
+      guests: String(Math.max(1, guests))
+    });
+    navigate(`/rooms?${params.toString()}`, { viewTransition: true });
+  };
 
   useEffect(() => {
     Promise.all([publicApi.cms(), publicApi.rooms("?featured=true")])
@@ -36,43 +58,53 @@ export function HomePage() {
   if (loading) return <div className="page-loader">Preparing your stay...</div>;
 
   return (
-    <main>
-      <section className="hero-section" style={{ backgroundImage: `url(${hero?.imageUrl})` }}>
-        <div className="hero-overlay" />
-        <div className="hero-content">
-          <span>{hero?.subtitle || "Skardu, Pakistan"}</span>
-          <h1>{hero?.title || "Peaceful Stays Beside Skardu's Mountains"}</h1>
-          <p>{hero?.body}</p>
-          <div className="hero-actions">
-            <Link to="/booking" className="btn btn-primary">
-              <CalendarDays size={16} />
-              Book Your Stay
-            </Link>
-            <Link to="/rooms" className="btn btn-ghost light">
-              Explore Rooms
-            </Link>
+    <main className="minimal-home-page">
+      <section className="minimal-hero" style={{ backgroundImage: `url(${hero?.imageUrl})` }}>
+        <div className="minimal-hero-frame">
+          <div className="minimal-hero-content">
+            <span>{hero?.subtitle || "Skardu, Pakistan"}</span>
+            <h1>
+              Find Your Perfect <mark>Skardu Stay</mark>
+            </h1>
+            <p>{hero?.body || "A peaceful mountain retreat shaped around lake days, valley drives, and warm local hospitality."}</p>
           </div>
+
+          <div className="hero-rating-badge">
+            <Star size={22} fill="currentColor" />
+            <strong>4.9</strong>
+            <span>guest rating</span>
+          </div>
+
+          <form
+            className="minimal-booking-bar"
+            onSubmit={(event) => {
+              event.preventDefault();
+              searchRooms();
+            }}
+          >
+            <GlassDatePicker label="Check-in" value={checkIn} minDate={defaultCheckIn} onChange={updateCheckIn} variant="hero" />
+            <GlassDatePicker
+              label="Check-out"
+              value={checkOut}
+              minDate={toDateInputValue(addDays(fromDateInputValue(checkIn), 1))}
+              onChange={setCheckOut}
+              variant="hero"
+            />
+            <label>
+              <Users size={20} />
+              <span>
+                Guests
+                <input type="number" min={1} value={guests} onChange={(event) => setGuests(Number(event.target.value) || 1)} />
+              </span>
+            </label>
+            <button type="submit" className="btn btn-primary">
+              Book Your Stay
+            </button>
+          </form>
         </div>
-        <form className="hero-booking-card" onSubmit={(event) => event.preventDefault()}>
-          <label>
-            Check-in
-            <input type="date" defaultValue={new Date(Date.now() + 86400000).toISOString().slice(0, 10)} />
-          </label>
-          <label>
-            Check-out
-            <input type="date" defaultValue={new Date(Date.now() + 345600000).toISOString().slice(0, 10)} />
-          </label>
-          <label>
-            Guests
-            <input type="number" min={1} defaultValue={2} />
-          </label>
-          <Link to="/booking" className="btn btn-primary">
-            Search
-          </Link>
-        </form>
       </section>
 
-      <section className="content-band about-band">
+      <section className="content-band about-band minimal-about-band">
         <div>
           <span className="section-kicker">{cms?.sections.about?.subtitle}</span>
           <h2>{cms?.sections.about?.title}</h2>
@@ -87,7 +119,7 @@ export function HomePage() {
         <img src={cms?.sections.about?.imageUrl || ""} alt="Hotel near Skardu mountains" />
       </section>
 
-      <section className="content-band center-band">
+      <section className="content-band center-band" id="facilities">
         <span className="section-kicker">Services</span>
         <h2>World-Class Facilities</h2>
         <div className="facility-grid">
@@ -117,7 +149,20 @@ export function HomePage() {
         </div>
         <div className="room-card-grid">
           {rooms.slice(0, 3).map((room) => (
-            <article className="room-card" key={room.id}>
+            <article
+              className="room-card clickable-room-card"
+              key={room.id}
+              onClick={() => navigate(`/rooms/${room.slug}`, { viewTransition: true })}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  navigate(`/rooms/${room.slug}`, { viewTransition: true });
+                }
+              }}
+              role="link"
+              tabIndex={0}
+              aria-label={`View details for ${room.name}`}
+            >
               <img src={room.images[0]?.url} alt={room.images[0]?.alt || room.name} />
               <div>
                 <span>{room.type}</span>
@@ -133,7 +178,12 @@ export function HomePage() {
                 </div>
                 <div className="room-card-footer">
                   <strong>{currency(room.pricePerNight)} / night</strong>
-                  <Link to={`/rooms/${room.slug}`} className="btn btn-dark">
+                  <Link
+                    to={`/rooms/${room.slug}`}
+                    className="btn btn-dark"
+                    viewTransition
+                    onClick={(event) => event.stopPropagation()}
+                  >
                     Details
                   </Link>
                 </div>
@@ -143,7 +193,7 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="gallery-strip">
+      <section className="gallery-strip" id="gallery">
         {gallery.slice(0, 5).map((src: any, index) => (
           <img key={String(src)} src={String(src)} alt={`Skardu gallery ${index + 1}`} />
         ))}

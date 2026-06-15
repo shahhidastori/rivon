@@ -1,11 +1,14 @@
-import { Link, NavLink, Outlet } from "react-router-dom";
-import { CalendarDays, Mail, MapPin, Menu, Phone } from "lucide-react";
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
+import { Mail, MapPin, Menu, Phone } from "lucide-react";
 import { useState } from "react";
 import brandLogo from "../assets/brand-logo.png";
 
 export function PublicLayout() {
+  const location = useLocation();
+  const isHome = location.pathname === "/";
+
   return (
-    <div className="site-shell">
+    <div className={isHome ? "site-shell home-shell" : "site-shell"}>
       <PublicHeader />
       <Outlet />
       <PublicFooter />
@@ -15,31 +18,32 @@ export function PublicLayout() {
 
 export function PublicHeader() {
   const [open, setOpen] = useState(false);
-  const links = [
-    ["Home", "/"],
-    ["Rooms", "/rooms"],
-    ["Booking Lookup", "/lookup"],
-    ["Admin", "/admin"]
-  ];
+  const links = [["Rooms", "/rooms"]];
 
   return (
     <header className="public-header">
-      <Link to="/" className="brand-mark" aria-label="Home">
-        <img src={brandLogo} alt="Hotel logo" />
-      </Link>
+      <nav className="desktop-nav header-primary">
+        <Link to="/" className="brand-mark" aria-label="Home">
+          <img src={brandLogo} alt="Hotel logo" />
+        </Link>
+        {links.map(([label, href]) => (
+          <NavLink key={href} to={href}>
+            {label}
+          </NavLink>
+        ))}
+      </nav>
       <button className="icon-button mobile-only" onClick={() => setOpen((value) => !value)} aria-label="Open menu">
         <Menu size={20} />
       </button>
-      <nav className={open ? "open" : ""}>
+      <nav className={open ? "mobile-menu open" : "mobile-menu"}>
+        <NavLink to="/" onClick={() => setOpen(false)}>
+          Home
+        </NavLink>
         {links.map(([label, href]) => (
           <NavLink key={href} to={href} onClick={() => setOpen(false)}>
             {label}
           </NavLink>
         ))}
-        <Link className="nav-cta" to="/booking" onClick={() => setOpen(false)}>
-          <CalendarDays size={16} />
-          Book Now
-        </Link>
       </nav>
     </header>
   );
