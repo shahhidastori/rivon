@@ -3,7 +3,7 @@ services:
     name: hotel-booking-platform
     runtime: node
     plan: free
-    buildCommand: npm ci && npm run db:prod:push && npm run build:render
+    buildCommand: npm ci --include=dev && npm run db:prod:push && npm run build:render
     startCommand: npm run start
     healthCheckPath: /api/health
     envVars:
