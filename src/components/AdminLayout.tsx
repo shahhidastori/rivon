@@ -2,12 +2,13 @@ import { NavLink, Navigate, Outlet, useNavigate } from "react-router-dom";
 import { BedDouble, BookOpenCheck, LayoutDashboard, LogOut, PanelLeft, Users, Wand2 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import brandLogo from "../assets/brand-logo.png";
+import { useBrandLogo } from "../hooks/useBrandLogo";
 
 export function AdminLayout() {
   const { admin, loading, logout } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const logoUrl = useBrandLogo();
 
   if (loading) return <div className="page-loader">Loading admin session...</div>;
   if (!admin) return <Navigate to="/admin/login" replace />;
@@ -24,7 +25,7 @@ export function AdminLayout() {
     <div className="admin-shell">
       <aside className={open ? "admin-sidebar open" : "admin-sidebar"}>
         <div className="admin-logo">
-          <img src={brandLogo} alt="Hotel logo" />
+          <img src={logoUrl} alt="Hotel logo" />
         </div>
         <nav>
           {navItems.map(([label, href, Icon]) => (

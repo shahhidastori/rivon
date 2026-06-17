@@ -82,6 +82,14 @@ export const roomSeeds = [
 
 export const cmsSectionSeeds = [
   {
+    key: "branding",
+    title: "Brand Logo",
+    subtitle: "Rivon Resort",
+    body: "Logo used across public and admin brand areas.",
+    imageUrl: null,
+    metadataJson: JSON.stringify({ alt: "Hotel logo" })
+  },
+  {
     key: "hero",
     title: "Peaceful Stays Beside Skardu's Mountains",
     subtitle: "Skardu, Pakistan",

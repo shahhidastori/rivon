@@ -2,7 +2,7 @@ import { FormEvent, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { Button, Field } from "../../components/ui";
-import brandLogo from "../../assets/brand-logo.png";
+import { useBrandLogo } from "../../hooks/useBrandLogo";
 
 export function LoginPage() {
   const { admin, login } = useAuth();
@@ -11,6 +11,7 @@ export function LoginPage() {
   const [password, setPassword] = useState("password123");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const logoUrl = useBrandLogo();
 
   if (admin) return <Navigate to="/admin" replace />;
 
@@ -31,7 +32,7 @@ export function LoginPage() {
   return (
     <main className="admin-login-page">
       <form className="login-card" onSubmit={submit}>
-        <img className="login-logo" src={brandLogo} alt="Hotel logo" />
+        <img className="login-logo" src={logoUrl} alt="Hotel logo" />
         <h1>Admin Login</h1>
         <p>Manage rooms, bookings, customers, and website content.</p>
         {error ? <div className="alert error">{error}</div> : null}

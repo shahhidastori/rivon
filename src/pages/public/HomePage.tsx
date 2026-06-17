@@ -1,9 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { BedDouble, Car, Coffee, MapPin, Sparkles, Star, Users, Waves, Wifi } from "lucide-react";
+import { BedDouble, Car, Coffee, ExternalLink, MapPin, Minus, Plus, Sparkles, Star, Users, Waves, Wifi } from "lucide-react";
 import type { CmsPayload, Room } from "../../types";
 import { currency, publicApi } from "../../lib/api";
 import { GlassDatePicker, addDays, fromDateInputValue, toDateInputValue } from "../../components/GlassDatePicker";
+import { fallbackBrandLogo } from "../../hooks/useBrandLogo";
+
+const GOOGLE_MAPS_URL = "https://maps.app.goo.gl/cvEybjxAVFQKJ22V9";
 
 export function HomePage() {
   const navigate = useNavigate();
@@ -15,6 +18,9 @@ export function HomePage() {
   const [cms, setCms] = useState<CmsPayload | null>(null);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
+  const [guestOpen, setGuestOpen] = useState(false);
+  const [activeHeroImage, setActiveHeroImage] = useState(0);
+  const guestPickerRef = useRef<HTMLDivElement>(null);
 
   const updateCheckIn = (value: string) => {
     setCheckIn(value);
@@ -29,6 +35,7 @@ export function HomePage() {
       checkOut,
       guests: String(Math.max(1, guests))
     });
+    setGuestOpen(false);
     navigate(`/rooms?${params.toString()}`, { viewTransition: true });
   };
 
@@ -41,7 +48,21 @@ export function HomePage() {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    if (!guestOpen) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!guestPickerRef.current?.contains(event.target as Node)) {
+        setGuestOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [guestOpen]);
+
   const hero = cms?.sections.hero;
+  const brandLogoUrl = cms?.sections.branding?.imageUrl || fallbackBrandLogo;
   const facilities = useMemo(() => {
     const metadata = cms?.sections.facilities?.metadata;
     return Array.isArray(metadata) ? metadata : [];
@@ -54,17 +75,58 @@ export function HomePage() {
     const metadata = cms?.sections.gallery?.metadata;
     return Array.isArray(metadata) ? metadata : [];
   }, [cms]);
+  const heroImages = useMemo(() => {
+    const roomImages = rooms.flatMap((room) => room.images.map((image) => image.url));
+    const sources = [hero?.imageUrl, ...gallery.map((item) => String(item)), ...roomImages].filter(
+      (source): source is string => Boolean(source)
+    );
+    return Array.from(new Set(sources)).slice(0, 6);
+  }, [gallery, hero?.imageUrl, rooms]);
+  const guestLabel = `${guests} ${guests === 1 ? "Guest" : "Guests"}`;
+
+  useEffect(() => {
+    setActiveHeroImage(0);
+    if (heroImages.length <= 1) return undefined;
+
+    const interval = window.setInterval(() => {
+      setActiveHeroImage((index) => (index + 1) % heroImages.length);
+    }, 4000);
+
+    return () => window.clearInterval(interval);
+  }, [heroImages.length]);
 
   if (loading) return <div className="page-loader">Preparing your stay...</div>;
 
   return (
     <main className="minimal-home-page">
-      <section className="minimal-hero" style={{ backgroundImage: `url(${hero?.imageUrl})` }}>
+      <section className="minimal-hero">
+        <div className="minimal-hero-slideshow" aria-hidden="true">
+          {heroImages.map((image, index) => (
+            <div
+              className={index === activeHeroImage ? "minimal-hero-slide active" : "minimal-hero-slide"}
+              key={image}
+              style={{ backgroundImage: `url(${image})` }}
+            />
+          ))}
+        </div>
+        <header className="minimal-hero-header" aria-label="Landing page navigation">
+          <Link to="/" className="minimal-hero-logo" aria-label="Home">
+            <img src={brandLogoUrl} alt="Hotel logo" />
+          </Link>
+          <nav>
+            <a href="#about">Our Story</a>
+            <a href="#facilities">Our Amenities</a>
+            <a href="#gallery">Gallery</a>
+          </nav>
+        </header>
+
         <div className="minimal-hero-frame">
           <div className="minimal-hero-content">
             <span>{hero?.subtitle || "Skardu, Pakistan"}</span>
             <h1>
-              Find Your Perfect <mark>Skardu Stay</mark>
+              Find Your Perfect
+              <br />
+              <mark>Skardu Stay</mark>
             </h1>
             <p>{hero?.body || "A peaceful mountain retreat shaped around lake days, valley drives, and warm local hospitality."}</p>
           </div>
@@ -90,13 +152,43 @@ export function HomePage() {
               onChange={setCheckOut}
               variant="hero"
             />
-            <label>
-              <Users size={20} />
-              <span>
-                Guests
-                <input type="number" min={1} value={guests} onChange={(event) => setGuests(Number(event.target.value) || 1)} />
-              </span>
-            </label>
+            <div className={guestOpen ? "minimal-guest-field open" : "minimal-guest-field"} ref={guestPickerRef}>
+              <button
+                type="button"
+                className="minimal-guest-trigger"
+                aria-expanded={guestOpen}
+                aria-haspopup="dialog"
+                onClick={() => setGuestOpen((current) => !current)}
+              >
+                <Users size={20} />
+                <span>
+                  <small>Guests</small>
+                  <strong>{guestLabel}</strong>
+                </span>
+              </button>
+              {guestOpen ? (
+                <div className="minimal-guests-popover" role="dialog" aria-label="Select guests">
+                  <div>
+                    <span>
+                      <strong>Guests</strong>
+                      <small>Ages 13 or above</small>
+                    </span>
+                    <div className="guest-stepper">
+                      <button type="button" aria-label="Decrease guests" onClick={() => setGuests((value) => Math.max(1, value - 1))}>
+                        <Minus size={16} />
+                      </button>
+                      <strong>{guestLabel}</strong>
+                      <button type="button" aria-label="Increase guests" onClick={() => setGuests((value) => value + 1)}>
+                        <Plus size={16} />
+                      </button>
+                    </div>
+                  </div>
+                  <button type="button" className="guest-done-button" onClick={() => setGuestOpen(false)}>
+                    Done
+                  </button>
+                </div>
+              ) : null}
+            </div>
             <button type="submit" className="btn btn-primary">
               Book Your Stay
             </button>
@@ -104,7 +196,7 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="content-band about-band minimal-about-band">
+      <section className="content-band about-band minimal-about-band" id="about">
         <div>
           <span className="section-kicker">{cms?.sections.about?.subtitle}</span>
           <h2>{cms?.sections.about?.title}</h2>
@@ -227,7 +319,23 @@ export function HomePage() {
             Satpara Road, Skardu, Gilgit-Baltistan, Pakistan
           </p>
         </div>
-        <div className="map-card">Map Preview</div>
+        <a className="map-card" href={GOOGLE_MAPS_URL} target="_blank" rel="noreferrer" aria-label="Open Rivon Resort location in Google Maps">
+          <iframe
+            className="map-card-frame"
+            src="https://www.google.com/maps?q=Rivon%20Resort%20Skardu%20Pakistan&output=embed"
+            title="Rivon Resort location preview"
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+          />
+          <span className="map-pin-marker">
+            <MapPin size={24} />
+          </span>
+          <strong>Rivon Resort</strong>
+          <small>International Airport Road, Skardu</small>
+          <em>
+            Open in Google Maps <ExternalLink size={14} />
+          </em>
+        </a>
       </section>
     </main>
   );

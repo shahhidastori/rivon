@@ -1,7 +1,8 @@
-import { FormEvent, useEffect, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import type { CmsPage, CmsSection } from "../../types";
 import { adminApi } from "../../lib/api";
 import { Button, Field, TextArea } from "../../components/ui";
+import { announceBrandLogoUpdate, fallbackBrandLogo } from "../../hooks/useBrandLogo";
 
 export function AdminCms() {
   const [sections, setSections] = useState<CmsSection[]>([]);
@@ -9,6 +10,8 @@ export function AdminCms() {
   const [activeSection, setActiveSection] = useState<CmsSection | null>(null);
   const [activePage, setActivePage] = useState<CmsPage | null>(null);
   const [message, setMessage] = useState("");
+  const [logoUploading, setLogoUploading] = useState(false);
+  const brandingSection = sections.find((section) => section.key === "branding");
 
   function load() {
     adminApi.cms().then((payload) => {
@@ -47,13 +50,66 @@ export function AdminCms() {
     }
   }
 
+  async function uploadLogo(event: ChangeEvent<HTMLInputElement>) {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    input.value = "";
+
+    if (!file) return;
+    if (!["image/png", "image/jpeg"].includes(file.type)) {
+      setMessage("Logo upload failed. Please choose a PNG or JPG file.");
+      return;
+    }
+
+    setLogoUploading(true);
+    setMessage("");
+
+    try {
+      const uploaded = await adminApi.uploadImage(file);
+      const payload = await adminApi.saveSection("branding", {
+        title: brandingSection?.title || "Brand Logo",
+        subtitle: brandingSection?.subtitle || "Rivon Resort",
+        body: brandingSection?.body || "Logo used across public and admin brand areas.",
+        imageUrl: uploaded.url,
+        metadataJson: brandingSection?.metadataJson || JSON.stringify({ alt: "Hotel logo" })
+      });
+
+      setSections((current) => {
+        const remainingSections = current.filter((section) => section.key !== "branding");
+        return [...remainingSections, payload.section].sort((a, b) => a.key.localeCompare(b.key));
+      });
+      setActiveSection(payload.section);
+      announceBrandLogoUpdate(payload.section.imageUrl || fallbackBrandLogo);
+      setMessage("Logo uploaded and applied across the website.");
+    } catch (err) {
+      setMessage(err instanceof Error ? `Logo upload failed. ${err.message}` : "Logo upload failed.");
+    } finally {
+      setLogoUploading(false);
+    }
+  }
+
+  const isErrorMessage = message.toLowerCase().includes("failed");
+
   return (
     <section className="admin-page cms-admin">
       <div className="admin-heading">
         <span>Website</span>
         <h1>CMS Management</h1>
       </div>
-      {message ? <div className={message.includes("failed") ? "alert error" : "alert success"}>{message}</div> : null}
+      {message ? <div className={isErrorMessage ? "alert error" : "alert success"}>{message}</div> : null}
+
+      <div className="admin-card logo-upload-card">
+        <div>
+          <span className="admin-eyebrow">Branding</span>
+          <h2>Website Logo</h2>
+          <p>Upload a PNG or JPG logo to use across the landing page, header, footer, admin sidebar, and login screen.</p>
+        </div>
+        <img className="logo-upload-preview" src={brandingSection?.imageUrl || fallbackBrandLogo} alt="Current website logo preview" />
+        <label className={logoUploading ? "upload-line disabled" : "upload-line"}>
+          {logoUploading ? "Uploading logo..." : "Upload PNG/JPG logo"}
+          <input type="file" accept="image/png,image/jpeg" onChange={uploadLogo} disabled={logoUploading} />
+        </label>
+      </div>
 
       <div className="cms-layout">
         <aside className="admin-card cms-list">

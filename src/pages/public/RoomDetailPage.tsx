@@ -1,16 +1,20 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import {
   BedDouble,
   Car,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Coffee,
   Heart,
   Maximize2,
   Sparkles,
   Star,
   Users,
-  Wifi
+  Wifi,
+  X
 } from "lucide-react";
 import type { Room } from "../../types";
 import { currency, publicApi } from "../../lib/api";
@@ -30,6 +34,7 @@ export function RoomDetailPage() {
   const [room, setRoom] = useState<Room | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const defaultCheckIn = toDateInputValue(addDays(new Date(), 1));
   const defaultCheckOut = toDateInputValue(addDays(new Date(), 4));
   const [checkIn, setCheckIn] = useState(params.get("checkIn") || defaultCheckIn);
@@ -51,10 +56,28 @@ export function RoomDetailPage() {
       .finally(() => setLoading(false));
   }, [slug]);
 
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setLightboxIndex(null);
+      if (event.key === "ArrowLeft") {
+        setLightboxIndex((index) => (index === null ? index : (index - 1 + (room?.images.length || 1)) % (room?.images.length || 1)));
+      }
+      if (event.key === "ArrowRight") {
+        setLightboxIndex((index) => (index === null ? index : (index + 1) % (room?.images.length || 1)));
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [lightboxIndex, room?.images.length]);
+
   if (loading) return <div className="page-loader">Loading room details...</div>;
   if (error || !room) return <EmptyState title="Room not found" body={error || "This room is not available."} />;
 
   const mainImage = room.images[0];
+  const activeLightboxImage = lightboxIndex === null ? null : room.images[lightboxIndex];
   const previewNights = calculateNights(checkIn, checkOut);
   const previewTotal = room.pricePerNight * previewNights;
   const bookingParams = new URLSearchParams({
@@ -75,15 +98,52 @@ export function RoomDetailPage() {
 
       <section className="room-gallery detail-gallery">
         <div className="gallery-main-wrap">
-          {mainImage ? <img className="gallery-main" src={mainImage.url} alt={mainImage.alt || room.name} /> : null}
+          {mainImage ? (
+            <button type="button" className="gallery-image-button gallery-main-button" onClick={() => setLightboxIndex(0)}>
+              <img className="gallery-main" src={mainImage.url} alt={mainImage.alt || room.name} />
+            </button>
+          ) : null}
           {room.featured ? <span className="featured-pill dark">Featured Selection</span> : null}
         </div>
         <div>
-          {room.images.slice(1, 3).map((image) => (
-            <img key={image.id} src={image.url} alt={image.alt || room.name} />
+          {room.images.slice(1, 3).map((image, index) => (
+            <button type="button" className="gallery-image-button" key={image.id} onClick={() => setLightboxIndex(index + 1)}>
+              <img src={image.url} alt={image.alt || room.name} />
+            </button>
           ))}
         </div>
       </section>
+
+      {activeLightboxImage
+        ? createPortal(
+            <div className="image-lightbox" role="dialog" aria-modal="true" aria-label={`${room.name} image gallery`}>
+              <button type="button" className="lightbox-close" onClick={() => setLightboxIndex(null)} aria-label="Close image view">
+                <X size={22} />
+              </button>
+              <button
+                type="button"
+                className="lightbox-nav previous"
+                onClick={() => setLightboxIndex((index) => (index === null ? index : (index - 1 + room.images.length) % room.images.length))}
+                aria-label="Previous image"
+              >
+                <ChevronLeft size={28} />
+              </button>
+              <img src={activeLightboxImage.url} alt={activeLightboxImage.alt || room.name} />
+              <button
+                type="button"
+                className="lightbox-nav next"
+                onClick={() => setLightboxIndex((index) => (index === null ? index : (index + 1) % room.images.length))}
+                aria-label="Next image"
+              >
+                <ChevronRight size={28} />
+              </button>
+              <div className="lightbox-count">
+                {(lightboxIndex || 0) + 1} / {room.images.length}
+              </div>
+            </div>,
+            document.body
+          )
+        : null}
 
       <section className="detail-layout refined-detail-layout">
         <article className="detail-copy">

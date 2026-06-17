@@ -1,22 +1,30 @@
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
-import { Mail, MapPin, Menu, Phone } from "lucide-react";
+import { Facebook, Instagram, Mail, MapPin, Menu, Phone } from "lucide-react";
 import { useState } from "react";
-import brandLogo from "../assets/brand-logo.png";
+import { fallbackBrandLogo, useBrandLogo } from "../hooks/useBrandLogo";
+
+const FACEBOOK_URL = "https://www.facebook.com/profile.php?id=61563652525104#";
+const INSTAGRAM_URL = "https://www.instagram.com/rivonresort/";
 
 export function PublicLayout() {
   const location = useLocation();
   const isHome = location.pathname === "/";
+  const logoUrl = useBrandLogo();
 
   return (
     <div className={isHome ? "site-shell home-shell" : "site-shell"}>
-      <PublicHeader />
+      <PublicHeader logoUrl={logoUrl} />
       <Outlet />
-      <PublicFooter />
+      <PublicFooter logoUrl={logoUrl} />
     </div>
   );
 }
 
-export function PublicHeader() {
+type BrandLogoProps = {
+  logoUrl?: string;
+};
+
+export function PublicHeader({ logoUrl = fallbackBrandLogo }: BrandLogoProps) {
   const [open, setOpen] = useState(false);
   const links = [["Rooms", "/rooms"]];
 
@@ -24,7 +32,7 @@ export function PublicHeader() {
     <header className="public-header">
       <nav className="desktop-nav header-primary">
         <Link to="/" className="brand-mark" aria-label="Home">
-          <img src={brandLogo} alt="Hotel logo" />
+          <img src={logoUrl} alt="Hotel logo" />
         </Link>
         {links.map(([label, href]) => (
           <NavLink key={href} to={href}>
@@ -49,12 +57,20 @@ export function PublicHeader() {
   );
 }
 
-export function PublicFooter() {
+export function PublicFooter({ logoUrl = fallbackBrandLogo }: BrandLogoProps) {
   return (
     <footer className="public-footer">
       <div className="footer-brand">
-        <img className="footer-logo-image" src={brandLogo} alt="Hotel logo" />
+        <img className="footer-logo-image" src={logoUrl} alt="Hotel logo" />
         <p>Peaceful Skardu stays, mountain views, local hospitality, and a seamless booking experience.</p>
+        <div className="footer-socials" aria-label="Social media links">
+          <a href={FACEBOOK_URL} target="_blank" rel="noreferrer" aria-label="Visit Rivon Resort on Facebook">
+            <Facebook size={18} />
+          </a>
+          <a href={INSTAGRAM_URL} target="_blank" rel="noreferrer" aria-label="Visit Rivon Resort on Instagram">
+            <Instagram size={18} />
+          </a>
+        </div>
       </div>
       <div>
         <h3>Explore</h3>
@@ -73,10 +89,10 @@ export function PublicFooter() {
           <MapPin size={15} /> Satpara Road, Skardu
         </p>
         <p>
-          <Phone size={15} /> +92 5815 555 019
+          <Phone size={15} /> +92 340 8413273
         </p>
         <p>
-          <Mail size={15} /> reservations@yourdomain.com
+          <Mail size={15} /> reservations@rivon.com
         </p>
       </div>
     </footer>
