@@ -3,6 +3,7 @@ import { BedDouble, BookOpenCheck, CalendarClock, CircleDollarSign, Hotel, Perce
 import type { Booking } from "../../types";
 import { adminApi, currency, dateLabel } from "../../lib/api";
 import { StatusBadge } from "../../components/ui";
+import { AdminDashboardSkeleton } from "../../components/Skeletons";
 
 type Dashboard = Awaited<ReturnType<typeof adminApi.dashboard>>;
 
@@ -15,7 +16,7 @@ export function AdminDashboard() {
   }, []);
 
   if (error) return <div className="alert error">{error}</div>;
-  if (!dashboard) return <div className="page-loader">Loading dashboard...</div>;
+  if (!dashboard) return <AdminDashboardSkeleton />;
 
   const cards = [
     ["Total Bookings", dashboard.totalBookings, BookOpenCheck],

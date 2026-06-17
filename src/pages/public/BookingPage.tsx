@@ -20,6 +20,7 @@ import type { Booking, PaymentMethod, Room } from "../../types";
 import { currency, dateLabel, publicApi } from "../../lib/api";
 import { Button, Field, SelectField, TextArea } from "../../components/ui";
 import { GlassDatePicker, addDays, fromDateInputValue, toDateInputValue } from "../../components/GlassDatePicker";
+import { BookingPageSkeleton } from "../../components/Skeletons";
 
 const paymentMethods: Array<{ value: PaymentMethod; label: string; description: string; icon: typeof Wallet }> = [
   { value: "CARD", label: "Credit/Debit Card", description: "Admin confirms the secure payment link.", icon: CreditCard },
@@ -158,7 +159,7 @@ export function BookingPage() {
     }
   }
 
-  if (loading) return <div className="page-loader">Loading booking flow...</div>;
+  if (loading) return <BookingPageSkeleton />;
 
   return (
     <main className="page-wrap booking-page premium-booking-page">

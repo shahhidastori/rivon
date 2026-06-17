@@ -5261,6 +5261,262 @@ td select {
   }
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.skeleton-page {
+  animation: fadeUp 320ms ease both;
+}
+
+.skeleton-block {
+  position: relative;
+  display: block;
+  min-height: 12px;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, rgba(232, 225, 211, 0.58) 0%, rgba(255, 255, 255, 0.94) 48%, rgba(232, 225, 211, 0.58) 100%);
+  background-size: 220% 100%;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.36);
+  animation: skeletonShimmer 1400ms ease-in-out infinite;
+}
+
+.skeleton-lines {
+  display: grid;
+  gap: 10px;
+}
+
+.skeleton-lines .skeleton-block {
+  width: 100%;
+  height: 13px;
+}
+
+.skeleton-block.short,
+.skeleton-lines .skeleton-block.short {
+  width: 64%;
+}
+
+.skeleton-block.tiny {
+  width: 84px;
+  height: 12px;
+}
+
+.skeleton-block.eyebrow {
+  width: 132px;
+  height: 13px;
+}
+
+.skeleton-block.centered {
+  margin-inline: auto;
+}
+
+.skeleton-block.heading {
+  width: min(360px, 76%);
+  height: 36px;
+}
+
+.skeleton-block.heading.wide {
+  width: min(560px, 92%);
+}
+
+.skeleton-block.title {
+  width: min(270px, 86%);
+  height: 24px;
+}
+
+.skeleton-block.price {
+  width: 140px;
+  height: 28px;
+}
+
+.skeleton-block.button {
+  width: 136px;
+  height: 46px;
+  border-radius: 999px;
+}
+
+.skeleton-block.button.full {
+  width: 100%;
+}
+
+.skeleton-block.field {
+  width: 100%;
+  height: 58px;
+  border-radius: 22px;
+}
+
+.skeleton-block.field.small {
+  min-width: 130px;
+}
+
+.skeleton-block.icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+}
+
+.skeleton-block.chip,
+.skeleton-chip-row .skeleton-block {
+  width: 96px;
+  height: 28px;
+  border-radius: 999px;
+}
+
+.skeleton-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.skeleton-card {
+  pointer-events: none;
+}
+
+.skeleton-image {
+  width: 100%;
+  min-height: 230px;
+  border-radius: var(--radius-lg);
+}
+
+.skeleton-result-grid {
+  margin-top: 0;
+}
+
+.skeleton-hero-shell {
+  background:
+    linear-gradient(135deg, rgba(23, 45, 44, 0.48), rgba(224, 169, 63, 0.24)),
+    radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.2), transparent 32%),
+    #657f79;
+}
+
+.skeleton-hero-frame {
+  display: flex;
+  min-height: 100%;
+}
+
+.skeleton-hero-content {
+  gap: clamp(12px, 2vh, 22px);
+}
+
+.skeleton-hero-content .hero-title {
+  width: min(680px, 72vw);
+  height: clamp(34px, 4.4vw, 62px);
+  border-radius: 999px;
+}
+
+.skeleton-hero-content .hero-copy {
+  width: min(560px, 66vw);
+  height: 20px;
+}
+
+.skeleton-booking-bar .skeleton-block {
+  flex: 1 1 170px;
+}
+
+.skeleton-booking-bar .button {
+  flex: 0 0 180px;
+}
+
+.skeleton-two-column .feature-image {
+  width: 100%;
+  min-height: 360px;
+  border-radius: var(--radius-lg);
+}
+
+.skeleton-gallery .gallery-main {
+  width: 100%;
+  min-height: 430px;
+  border-radius: var(--radius-lg);
+}
+
+.skeleton-gallery > div:last-child {
+  display: grid;
+  gap: 16px;
+}
+
+.skeleton-gallery > div:last-child .skeleton-block {
+  width: 100%;
+  min-height: 205px;
+  border-radius: var(--radius-lg);
+}
+
+.skeleton-detail-copy,
+.booking-main-panel.skeleton-card,
+.booking-total-card.skeleton-card,
+.policy-card.skeleton-card,
+.admin-card.skeleton-card {
+  display: grid;
+  gap: 18px;
+}
+
+.skeleton-detail-copy .amenity {
+  width: 100%;
+  height: 48px;
+}
+
+.back-link-skeleton {
+  width: 160px;
+  height: 18px;
+  margin-bottom: 22px;
+}
+
+.skeleton-progress .step-dot {
+  width: 36px;
+  height: 36px;
+  margin: 0 auto 8px;
+  border-radius: 50%;
+}
+
+.skeleton-progress .step-label {
+  width: 96px;
+  height: 12px;
+}
+
+.booking-image {
+  width: 100%;
+  min-height: 150px;
+}
+
+.skeleton-table {
+  display: grid;
+  gap: 12px;
+}
+
+.skeleton-table .skeleton-block {
+  width: 100%;
+  height: 42px;
+}
+
+.admin-shell-skeleton .admin-logo-skeleton {
+  width: 92px;
+  height: 92px;
+  margin-bottom: 28px;
+}
+
+.admin-nav-skeleton {
+  width: 100%;
+  height: 42px;
+  margin-bottom: 8px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
+  background-size: 220% 100%;
+}
+
+@keyframes skeletonShimmer {
+  0% {
+    background-position: 120% 0;
+  }
+  100% {
+    background-position: -120% 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -5268,5 +5524,9 @@ td select {
     animation-duration: 1ms !important;
     scroll-behavior: auto !important;
     transition-duration: 1ms !important;
+  }
+
+  .skeleton-block {
+    animation: none !important;
   }
 }

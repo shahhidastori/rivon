@@ -20,6 +20,7 @@ import type { Room } from "../../types";
 import { currency, publicApi } from "../../lib/api";
 import { EmptyState, StatusBadge } from "../../components/ui";
 import { GlassDatePicker, addDays, fromDateInputValue, toDateInputValue } from "../../components/GlassDatePicker";
+import { RoomDetailSkeleton } from "../../components/Skeletons";
 
 const detailAmenityIcons = [Wifi, Coffee, Car, Sparkles, Heart, CheckCircle2];
 
@@ -73,7 +74,7 @@ export function RoomDetailPage() {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [lightboxIndex, room?.images.length]);
 
-  if (loading) return <div className="page-loader">Loading room details...</div>;
+  if (loading) return <RoomDetailSkeleton />;
   if (error || !room) return <EmptyState title="Room not found" body={error || "This room is not available."} />;
 
   const mainImage = room.images[0];

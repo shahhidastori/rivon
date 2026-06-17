@@ -18,6 +18,7 @@ import type { Room } from "../../types";
 import { currency, dateLabel, publicApi } from "../../lib/api";
 import { Button, EmptyState, Field, SelectField, StatusBadge } from "../../components/ui";
 import { GlassDatePicker, addDays, fromDateInputValue, toDateInputValue } from "../../components/GlassDatePicker";
+import { RoomResultsSkeleton } from "../../components/Skeletons";
 
 const amenityIcons = [Wifi, Coffee, Car, Mountain, Sparkles, ShieldCheck];
 
@@ -183,65 +184,67 @@ export function RoomsPage() {
               </select>
             </label>
           </div>
-          {loading ? <div className="page-loader">Loading rooms...</div> : null}
+          {loading ? <RoomResultsSkeleton /> : null}
           {error ? <div className="alert error">{error}</div> : null}
           {!loading && rooms.length === 0 ? (
             <EmptyState title="No rooms found" body="Adjust your filters or try a different date range." />
           ) : null}
-          <div className="room-result-grid">
-            {rooms.map((room, index) => (
-              <article className="room-list-item luxury-room-card" key={room.id}>
-                <div className="room-image-wrap">
-                  <img src={room.images[0]?.url} alt={room.images[0]?.alt || room.name} />
-                  {room.featured ? <span className="featured-pill">Featured Choice</span> : null}
-                  <span className="rating-pill">
-                    <Star size={12} fill="currentColor" />
-                    {(4.7 + (index % 3) / 10).toFixed(1)}
-                  </span>
-                </div>
-                <div className="room-card-body">
-                  <div className="room-list-title">
-                    <div>
-                      <span>{room.type}</span>
-                      <h2>{room.name}</h2>
+          {!loading ? (
+            <div className="room-result-grid">
+              {rooms.map((room, index) => (
+                <article className="room-list-item luxury-room-card" key={room.id}>
+                  <div className="room-image-wrap">
+                    <img src={room.images[0]?.url} alt={room.images[0]?.alt || room.name} />
+                    {room.featured ? <span className="featured-pill">Featured Choice</span> : null}
+                    <span className="rating-pill">
+                      <Star size={12} fill="currentColor" />
+                      {(4.7 + (index % 3) / 10).toFixed(1)}
+                    </span>
+                  </div>
+                  <div className="room-card-body">
+                    <div className="room-list-title">
+                      <div>
+                        <span>{room.type}</span>
+                        <h2>{room.name}</h2>
+                      </div>
+                      <StatusBadge value={room.status} />
                     </div>
-                    <StatusBadge value={room.status} />
+                    <p>{room.description}</p>
+                    <div className="room-meta">
+                      <span>
+                        <BedDouble size={15} /> {room.beds} beds
+                      </span>
+                      <span>
+                        <Users size={15} /> Up to {room.capacity}
+                      </span>
+                    </div>
+                    <div className="amenity-icons" aria-label="Top amenities">
+                      {room.amenities.slice(0, 5).map((amenity, amenityIndex) => {
+                        const Icon = amenityIcons[amenityIndex % amenityIcons.length];
+                        return (
+                          <span key={amenity.id} title={amenity.name}>
+                            <Icon size={14} />
+                          </span>
+                        );
+                      })}
+                    </div>
                   </div>
-                  <p>{room.description}</p>
-                  <div className="room-meta">
-                    <span>
-                      <BedDouble size={15} /> {room.beds} beds
-                    </span>
-                    <span>
-                      <Users size={15} /> Up to {room.capacity}
-                    </span>
-                  </div>
-                  <div className="amenity-icons" aria-label="Top amenities">
-                    {room.amenities.slice(0, 5).map((amenity, amenityIndex) => {
-                      const Icon = amenityIcons[amenityIndex % amenityIcons.length];
-                      return (
-                        <span key={amenity.id} title={amenity.name}>
-                          <Icon size={14} />
-                        </span>
-                      );
-                    })}
-                  </div>
-                </div>
-                <aside>
-                  <span>Per night</span>
-                  <strong>{currency(room.pricePerNight)}</strong>
-                  <div className="room-card-actions">
-                    <Link to={withPreservedSearch(`/rooms/${room.slug}`)} className="btn btn-ghost" viewTransition>
-                      Details
-                    </Link>
-                    <Link to={withPreservedSearch(`/booking/${room.slug}`)} className="btn btn-primary">
-                      Book
-                    </Link>
-                  </div>
-                </aside>
-              </article>
-            ))}
-          </div>
+                  <aside>
+                    <span>Per night</span>
+                    <strong>{currency(room.pricePerNight)}</strong>
+                    <div className="room-card-actions">
+                      <Link to={withPreservedSearch(`/rooms/${room.slug}`)} className="btn btn-ghost" viewTransition>
+                        Details
+                      </Link>
+                      <Link to={withPreservedSearch(`/booking/${room.slug}`)} className="btn btn-primary">
+                        Book
+                      </Link>
+                    </div>
+                  </aside>
+                </article>
+              ))}
+            </div>
+          ) : null}
 
           {!loading && rooms.length ? (
             <section className="listing-benefits glass-panel">

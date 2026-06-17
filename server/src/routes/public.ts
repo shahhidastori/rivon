@@ -1,4 +1,5 @@
-import { Router } from "express";
+import crypto from "node:crypto";
+import { Request, Response, Router } from "express";
 import { BookingStatus, PaymentMethod, PaymentStatus } from "@prisma/client";
 import { prisma } from "../db.js";
 import {
@@ -25,14 +26,32 @@ const bookingInclude = {
   payments: true
 } as const;
 
-publicRouter.get("/cms", async (_req, res, next) => {
+function sendCachedJson(req: Request, res: Response, payload: unknown) {
+  const body = JSON.stringify(payload);
+  const etag = `"${crypto.createHash("sha256").update(body).digest("hex")}"`;
+  const clientEtags = String(req.headers["if-none-match"] || "")
+    .split(",")
+    .map((value) => value.trim());
+
+  res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
+  res.setHeader("ETag", etag);
+  res.setHeader("Vary", "Accept-Encoding");
+
+  if (clientEtags.includes(etag)) {
+    return res.status(304).end();
+  }
+
+  return res.type("application/json").send(body);
+}
+
+publicRouter.get("/cms", async (req, res, next) => {
   try {
     const [sections, pages] = await Promise.all([
-      prisma.cmsSection.findMany(),
-      prisma.cmsPage.findMany()
+      prisma.cmsSection.findMany({ orderBy: { key: "asc" } }),
+      prisma.cmsPage.findMany({ orderBy: { key: "asc" } })
     ]);
 
-    res.json({
+    sendCachedJson(req, res, {
       sections: Object.fromEntries(
         sections.map((section) => [
           section.key,
@@ -97,7 +116,7 @@ publicRouter.get("/rooms", async (req, res, next) => {
       orderBy: { type: "asc" }
     });
 
-    res.json({
+    sendCachedJson(req, res, {
       rooms: rooms.map(serializeRoom),
       filters: { types: types.map((item) => item.type) }
     });
@@ -115,7 +134,7 @@ publicRouter.get("/rooms/:slug", async (req, res, next) => {
 
     if (!room) return res.status(404).json({ message: "Room not found." });
 
-    res.json({ room: serializeRoom(room) });
+    sendCachedJson(req, res, { room: serializeRoom(room) });
   } catch (error) {
     next(error);
   }

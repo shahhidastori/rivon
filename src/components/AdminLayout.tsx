@@ -3,6 +3,7 @@ import { BedDouble, BookOpenCheck, LayoutDashboard, LogOut, PanelLeft, Users, Wa
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useBrandLogo } from "../hooks/useBrandLogo";
+import { AdminShellSkeleton } from "./Skeletons";
 
 export function AdminLayout() {
   const { admin, loading, logout } = useAuth();
@@ -10,7 +11,7 @@ export function AdminLayout() {
   const [open, setOpen] = useState(false);
   const logoUrl = useBrandLogo();
 
-  if (loading) return <div className="page-loader">Loading admin session...</div>;
+  if (loading) return <AdminShellSkeleton />;
   if (!admin) return <Navigate to="/admin/login" replace />;
 
   const navItems = [

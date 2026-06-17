@@ -5,6 +5,7 @@ import type { CmsPayload, Room } from "../../types";
 import { currency, publicApi } from "../../lib/api";
 import { GlassDatePicker, addDays, fromDateInputValue, toDateInputValue } from "../../components/GlassDatePicker";
 import { fallbackBrandLogo } from "../../hooks/useBrandLogo";
+import { HomePageSkeleton } from "../../components/Skeletons";
 
 const GOOGLE_MAPS_URL = "https://maps.app.goo.gl/cvEybjxAVFQKJ22V9";
 
@@ -95,7 +96,7 @@ export function HomePage() {
     return () => window.clearInterval(interval);
   }, [heroImages.length]);
 
-  if (loading) return <div className="page-loader">Preparing your stay...</div>;
+  if (loading) return <HomePageSkeleton />;
 
   return (
     <main className="minimal-home-page">
