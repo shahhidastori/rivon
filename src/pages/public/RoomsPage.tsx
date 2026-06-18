@@ -10,7 +10,6 @@ import {
   Mountain,
   ShieldCheck,
   Sparkles,
-  Star,
   Users,
   Wifi
 } from "lucide-react";
@@ -191,15 +190,11 @@ export function RoomsPage() {
           ) : null}
           {!loading ? (
             <div className="room-result-grid">
-              {rooms.map((room, index) => (
+              {rooms.map((room) => (
                 <article className="room-list-item luxury-room-card" key={room.id}>
                   <div className="room-image-wrap">
                     <img src={room.images[0]?.url} alt={room.images[0]?.alt || room.name} />
                     {room.featured ? <span className="featured-pill">Featured Choice</span> : null}
-                    <span className="rating-pill">
-                      <Star size={12} fill="currentColor" />
-                      {(4.7 + (index % 3) / 10).toFixed(1)}
-                    </span>
                   </div>
                   <div className="room-card-body">
                     <div className="room-list-title">

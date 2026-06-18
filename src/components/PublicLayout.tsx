@@ -26,7 +26,11 @@ type BrandLogoProps = {
 
 export function PublicHeader({ logoUrl = fallbackBrandLogo }: BrandLogoProps) {
   const [open, setOpen] = useState(false);
-  const links = [["Rooms", "/rooms"]];
+  const links = [
+    ["Our Story", "/#about"],
+    ["Our Amenities", "/#facilities"],
+    ["Gallery", "/#gallery"]
+  ];
 
   return (
     <header className="public-header">
@@ -75,7 +79,6 @@ export function PublicFooter({ logoUrl = fallbackBrandLogo }: BrandLogoProps) {
       <div>
         <h3>Explore</h3>
         <Link to="/rooms">Rooms</Link>
-        <Link to="/booking">Book a Stay</Link>
         <Link to="/lookup">Manage Booking</Link>
       </div>
       <div>

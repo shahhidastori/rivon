@@ -1,8 +1,10 @@
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import type { CmsPage, CmsSection } from "../../types";
 import { adminApi } from "../../lib/api";
+import { prepareTransparentLogo } from "../../lib/transparentLogo";
 import { Button, Field, TextArea } from "../../components/ui";
-import { announceBrandLogoUpdate, fallbackBrandLogo } from "../../hooks/useBrandLogo";
+import { RichTextEditor } from "../../components/RichTextEditor";
+import { announceBrandLogoUpdate, fallbackBrandLogo, versionedBrandLogoUrl } from "../../hooks/useBrandLogo";
 
 export function AdminCms() {
   const [sections, setSections] = useState<CmsSection[]>([]);
@@ -62,10 +64,11 @@ export function AdminCms() {
     }
 
     setLogoUploading(true);
-    setMessage("");
+    setMessage("Preparing transparent logo...");
 
     try {
-      const uploaded = await adminApi.uploadImage(file);
+      const transparentLogo = await prepareTransparentLogo(file);
+      const uploaded = await adminApi.uploadImage(transparentLogo);
       const payload = await adminApi.saveSection("branding", {
         title: brandingSection?.title || "Brand Logo",
         subtitle: brandingSection?.subtitle || "Rivon Resort",
@@ -79,7 +82,7 @@ export function AdminCms() {
         return [...remainingSections, payload.section].sort((a, b) => a.key.localeCompare(b.key));
       });
       setActiveSection(payload.section);
-      announceBrandLogoUpdate(payload.section.imageUrl || fallbackBrandLogo);
+      announceBrandLogoUpdate(versionedBrandLogoUrl(payload.section.imageUrl, payload.section.updatedAt, fallbackBrandLogo));
       setMessage("Logo uploaded and applied across the website.");
     } catch (err) {
       setMessage(err instanceof Error ? `Logo upload failed. ${err.message}` : "Logo upload failed.");
@@ -104,7 +107,11 @@ export function AdminCms() {
           <h2>Website Logo</h2>
           <p>Upload a PNG or JPG logo to use across the landing page, header, footer, admin sidebar, and login screen.</p>
         </div>
-        <img className="logo-upload-preview" src={brandingSection?.imageUrl || fallbackBrandLogo} alt="Current website logo preview" />
+        <img
+          className="logo-upload-preview"
+          src={versionedBrandLogoUrl(brandingSection?.imageUrl, brandingSection?.updatedAt, fallbackBrandLogo)}
+          alt="Current website logo preview"
+        />
         <label className={logoUploading ? "upload-line disabled" : "upload-line"}>
           {logoUploading ? "Uploading logo..." : "Upload PNG/JPG logo"}
           <input type="file" accept="image/png,image/jpeg" onChange={uploadLogo} disabled={logoUploading} />
@@ -143,7 +150,7 @@ export function AdminCms() {
                 value={activeSection.imageUrl || ""}
                 onChange={(event) => setActiveSection({ ...activeSection, imageUrl: event.target.value })}
               />
-              <TextArea label="Body" value={activeSection.body || ""} onChange={(event) => setActiveSection({ ...activeSection, body: event.target.value })} />
+              <RichTextEditor label="Body" value={activeSection.body || ""} onChange={(body) => setActiveSection({ ...activeSection, body })} />
               <TextArea
                 label="Metadata JSON"
                 value={activeSection.metadataJson || ""}
@@ -160,7 +167,7 @@ export function AdminCms() {
             <>
               <Field label="Key" value={activePage.key} disabled />
               <Field label="Title" value={activePage.title} onChange={(event) => setActivePage({ ...activePage, title: event.target.value })} />
-              <TextArea label="Content" value={activePage.content} onChange={(event) => setActivePage({ ...activePage, content: event.target.value })} />
+              <RichTextEditor label="Content" value={activePage.content} onChange={(content) => setActivePage({ ...activePage, content })} />
               <TextArea
                 label="Metadata JSON"
                 value={activePage.metadataJson || ""}

@@ -12,7 +12,6 @@ import {
   Minus,
   Plus,
   Sparkles,
-  Star,
   Users,
   Waves,
   Wifi,
@@ -21,8 +20,9 @@ import {
 import type { CmsPayload, Room } from "../../types";
 import { currency, publicApi } from "../../lib/api";
 import { GlassDatePicker, addDays, fromDateInputValue, toDateInputValue } from "../../components/GlassDatePicker";
-import { fallbackBrandLogo } from "../../hooks/useBrandLogo";
+import { fallbackBrandLogo, useBrandLogo, versionedBrandLogoUrl } from "../../hooks/useBrandLogo";
 import { HomePageSkeleton } from "../../components/Skeletons";
+import { RichTextContent } from "../../components/RichTextContent";
 
 const GOOGLE_MAPS_URL = "https://maps.app.goo.gl/cvEybjxAVFQKJ22V9";
 
@@ -38,9 +38,9 @@ export function HomePage() {
   const [loading, setLoading] = useState(true);
   const [guestOpen, setGuestOpen] = useState(false);
   const [activeHeroImage, setActiveHeroImage] = useState(0);
+  const [galleryStartIndex, setGalleryStartIndex] = useState(0);
   const [galleryLightboxIndex, setGalleryLightboxIndex] = useState<number | null>(null);
   const guestPickerRef = useRef<HTMLDivElement>(null);
-  const galleryScrollerRef = useRef<HTMLDivElement>(null);
 
   const updateCheckIn = (value: string) => {
     setCheckIn(value);
@@ -82,13 +82,10 @@ export function HomePage() {
   }, [guestOpen]);
 
   const hero = cms?.sections.hero;
-  const brandLogoUrl = cms?.sections.branding?.imageUrl || fallbackBrandLogo;
+  const cmsBrandLogoUrl = versionedBrandLogoUrl(cms?.sections.branding?.imageUrl, cms?.sections.branding?.updatedAt, fallbackBrandLogo);
+  const brandLogoUrl = useBrandLogo(cmsBrandLogoUrl);
   const facilities = useMemo(() => {
     const metadata = cms?.sections.facilities?.metadata;
-    return Array.isArray(metadata) ? metadata : [];
-  }, [cms]);
-  const testimonials = useMemo(() => {
-    const metadata = cms?.sections.testimonials?.metadata;
     return Array.isArray(metadata) ? metadata : [];
   }, [cms]);
   const gallery = useMemo(() => {
@@ -105,6 +102,16 @@ export function HomePage() {
   }, [galleryImages, hero?.imageUrl, rooms]);
   const guestLabel = `${guests} ${guests === 1 ? "Guest" : "Guests"}`;
   const activeGalleryLightboxImage = galleryLightboxIndex === null ? null : galleryImages[galleryLightboxIndex];
+  const visibleGalleryImages = useMemo(() => {
+    if (galleryImages.length === 0) return [];
+    return Array.from({ length: Math.min(5, galleryImages.length) }, (_, offset) => {
+      const index = (galleryStartIndex + offset) % galleryImages.length;
+      return {
+        index,
+        src: galleryImages[index]
+      };
+    });
+  }, [galleryImages, galleryStartIndex]);
 
   const shiftHeroImage = (direction: number) => {
     if (heroImages.length <= 1) return;
@@ -112,23 +119,8 @@ export function HomePage() {
   };
 
   const shiftGallery = (direction: number) => {
-    const scroller = galleryScrollerRef.current;
-    if (!scroller || galleryImages.length <= 1) return;
-
-    const maxScroll = scroller.scrollWidth - scroller.clientWidth;
-    const slideDistance = Math.max(260, scroller.clientWidth * 0.72);
-
-    if (direction > 0 && scroller.scrollLeft >= maxScroll - 8) {
-      scroller.scrollTo({ left: 0, behavior: "smooth" });
-      return;
-    }
-
-    if (direction < 0 && scroller.scrollLeft <= 8) {
-      scroller.scrollTo({ left: maxScroll, behavior: "smooth" });
-      return;
-    }
-
-    scroller.scrollBy({ left: direction * slideDistance, behavior: "smooth" });
+    if (galleryImages.length <= 5) return;
+    setGalleryStartIndex((index) => (index + direction + galleryImages.length) % galleryImages.length);
   };
 
   useEffect(() => {
@@ -141,6 +133,10 @@ export function HomePage() {
 
     return () => window.clearInterval(interval);
   }, [heroImages.length]);
+
+  useEffect(() => {
+    setGalleryStartIndex(0);
+  }, [galleryImages.length]);
 
   useEffect(() => {
     if (galleryLightboxIndex === null || galleryImages.length === 0) return undefined;
@@ -204,13 +200,11 @@ export function HomePage() {
               <br />
               <mark>Skardu Stay</mark>
             </h1>
-            <p>{hero?.body || "A peaceful mountain retreat shaped around lake days, valley drives, and warm local hospitality."}</p>
-          </div>
-
-          <div className="hero-rating-badge">
-            <Star size={22} fill="currentColor" />
-            <strong>4.9</strong>
-            <span>guest rating</span>
+            <RichTextContent
+              className="minimal-hero-copy"
+              value={hero?.body}
+              fallback="A peaceful mountain retreat shaped around lake days, valley drives, and warm local hospitality."
+            />
           </div>
 
           <form
@@ -276,12 +270,10 @@ export function HomePage() {
         <div>
           <span className="section-kicker">{cms?.sections.about?.subtitle}</span>
           <h2>{cms?.sections.about?.title}</h2>
-          <p>{cms?.sections.about?.body}</p>
+          <RichTextContent value={cms?.sections.about?.body} />
           <div className="about-stats">
             <strong>42</strong>
             <span>Rooms & Suites</span>
-            <strong>4.9</strong>
-            <span>Guest Rating</span>
           </div>
         </div>
         <img src={cms?.sections.about?.imageUrl || ""} alt="Hotel near Skardu mountains" />
@@ -298,7 +290,7 @@ export function HomePage() {
               <article className="facility-card" key={item.title}>
                 <Icon size={24} />
                 <h3>{item.title}</h3>
-                <p>{item.body}</p>
+                <RichTextContent value={item.body} />
               </article>
             );
           })}
@@ -361,57 +353,35 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="gallery-strip gallery-carousel" id="gallery" aria-label="Skardu image gallery">
-        {galleryImages.length > 1 ? (
+      <section className="gallery-strip gallery-slider" id="gallery" aria-label="Skardu image gallery">
+        {galleryImages.length > 5 ? (
           <button type="button" className="carousel-arrow gallery-arrow previous" onClick={() => shiftGallery(-1)} aria-label="Previous gallery images">
             <ChevronLeft size={24} />
           </button>
         ) : null}
-        <div className="gallery-carousel-viewport" ref={galleryScrollerRef}>
-          <div className="gallery-carousel-track">
-            {galleryImages.map((src, index) => (
-              <button
-                type="button"
-                className="gallery-image-button gallery-carousel-item"
-                key={src}
-                onClick={() => setGalleryLightboxIndex(index)}
-                aria-label={`Open Skardu gallery image ${index + 1}`}
-              >
-                <img src={src} alt={`Skardu gallery ${index + 1}`} />
-              </button>
-            ))}
-          </div>
-        </div>
-        {galleryImages.length > 1 ? (
+        {visibleGalleryImages.map(({ src, index }) => (
+          <button
+            type="button"
+            className="gallery-image-button"
+            key={`${src}-${index}`}
+            onClick={() => setGalleryLightboxIndex(index)}
+            aria-label={`Open Skardu gallery image ${index + 1}`}
+          >
+            <img src={src} alt={`Skardu gallery ${index + 1}`} />
+          </button>
+        ))}
+        {galleryImages.length > 5 ? (
           <button type="button" className="carousel-arrow gallery-arrow next" onClick={() => shiftGallery(1)} aria-label="Next gallery images">
             <ChevronRight size={24} />
           </button>
         ) : null}
       </section>
 
-      <section className="content-band center-band">
-        <span className="section-kicker">Reviews</span>
-        <h2>What Guests Say</h2>
-        <div className="testimonial-grid">
-          {testimonials.map((item: any) => (
-            <article className="testimonial-card" key={item.name}>
-              <div>
-                {Array.from({ length: Number(item.rating || 5) }).map((_, index) => (
-                  <Star key={index} size={15} fill="currentColor" />
-                ))}
-              </div>
-              <p>{item.quote}</p>
-              <strong>{item.name}</strong>
-            </article>
-          ))}
-        </div>
-      </section>
-
       <section className="content-band location-band">
         <div>
           <span className="section-kicker">Location</span>
           <h2>{cms?.sections.contact?.title}</h2>
-          <p>{cms?.sections.contact?.body}</p>
+          <RichTextContent value={cms?.sections.contact?.body} />
           <p className="contact-line">
             <MapPin size={18} />
             Satpara Road, Skardu, Gilgit-Baltistan, Pakistan

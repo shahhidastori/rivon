@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import type { CmsPage } from "../../types";
 import { publicApi } from "../../lib/api";
 import { StaticPageSkeleton } from "../../components/Skeletons";
+import { RichTextContent } from "../../components/RichTextContent";
 
 export function StaticPage() {
-  const { key = "terms" } = useParams();
+  const location = useLocation();
+  const key = location.pathname.split("/").filter(Boolean)[0] || "terms";
   const [page, setPage] = useState<CmsPage | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -28,7 +30,7 @@ export function StaticPage() {
         <h1>{page?.title || "Content"}</h1>
       </section>
       <article className="policy-card">
-        <p>{page?.content || "This page is managed from the admin CMS."}</p>
+        <RichTextContent value={page?.content} fallback="This page is managed from the admin CMS." />
       </article>
     </main>
   );

@@ -11,7 +11,6 @@ import {
   Heart,
   Maximize2,
   Sparkles,
-  Star,
   Users,
   Wifi,
   X
@@ -23,6 +22,7 @@ import { GlassDatePicker, addDays, fromDateInputValue, toDateInputValue } from "
 import { RoomDetailSkeleton } from "../../components/Skeletons";
 
 const detailAmenityIcons = [Wifi, Coffee, Car, Sparkles, Heart, CheckCircle2];
+const SAVED_ROOMS_KEY = "rivon:saved-room-slugs";
 
 function calculateNights(checkIn: string, checkOut: string) {
   const diff = new Date(checkOut).getTime() - new Date(checkIn).getTime();
@@ -36,11 +36,21 @@ export function RoomDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [savedRoomSlugs, setSavedRoomSlugs] = useState<string[]>([]);
   const defaultCheckIn = toDateInputValue(addDays(new Date(), 1));
   const defaultCheckOut = toDateInputValue(addDays(new Date(), 4));
   const [checkIn, setCheckIn] = useState(params.get("checkIn") || defaultCheckIn);
   const [checkOut, setCheckOut] = useState(params.get("checkOut") || defaultCheckOut);
   const [guests, setGuests] = useState(Number(params.get("guests") || 2));
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(SAVED_ROOMS_KEY) || "[]");
+      setSavedRoomSlugs(Array.isArray(saved) ? saved.filter((value): value is string => typeof value === "string") : []);
+    } catch {
+      setSavedRoomSlugs([]);
+    }
+  }, []);
 
   const updateCheckIn = (value: string) => {
     setCheckIn(value);
@@ -81,11 +91,23 @@ export function RoomDetailPage() {
   const activeLightboxImage = lightboxIndex === null ? null : room.images[lightboxIndex];
   const previewNights = calculateNights(checkIn, checkOut);
   const previewTotal = room.pricePerNight * previewNights;
+  const isSavedRoom = savedRoomSlugs.includes(room.slug);
   const bookingParams = new URLSearchParams({
     checkIn,
     checkOut,
     guests: String(Math.max(1, Math.min(room.capacity, guests || 1)))
   });
+  const toggleSavedRoom = () => {
+    setSavedRoomSlugs((current) => {
+      const next = current.includes(room.slug) ? current.filter((savedSlug) => savedSlug !== room.slug) : [...current, room.slug];
+      try {
+        localStorage.setItem(SAVED_ROOMS_KEY, JSON.stringify(next));
+      } catch {
+        // Local storage can be unavailable in restricted browser modes.
+      }
+      return next;
+    });
+  };
 
   return (
     <main className="page-wrap room-detail-page">
@@ -149,15 +171,15 @@ export function RoomDetailPage() {
       <section className="detail-layout refined-detail-layout">
         <article className="detail-copy">
           <div className="detail-title-block">
-            <div className="rating-line" aria-label="Guest rating">
-              {Array.from({ length: 5 }).map((_, index) => (
-                <Star key={index} size={14} fill="currentColor" />
-              ))}
-              <span>4.9 (128 reviews)</span>
-            </div>
             <h1>{room.name}</h1>
-            <button type="button" className="save-room-button" aria-label="Save room">
-              <Heart size={18} />
+            <button
+              type="button"
+              className={isSavedRoom ? "save-room-button saved" : "save-room-button"}
+              aria-label={isSavedRoom ? "Remove room from favourites" : "Save room to favourites"}
+              aria-pressed={isSavedRoom}
+              onClick={toggleSavedRoom}
+            >
+              <Heart size={18} fill={isSavedRoom ? "currentColor" : "none"} />
             </button>
           </div>
 

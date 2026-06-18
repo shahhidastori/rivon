@@ -81,6 +81,7 @@ export type CmsSection = {
   imageUrl?: string | null;
   metadataJson?: string | null;
   metadata?: unknown;
+  updatedAt?: string;
 };
 
 export type CmsPage = {
@@ -90,6 +91,7 @@ export type CmsPage = {
   content: string;
   metadataJson?: string | null;
   metadata?: unknown;
+  updatedAt?: string;
 };
 
 export type CmsPayload = {
