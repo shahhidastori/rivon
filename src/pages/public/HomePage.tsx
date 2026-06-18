@@ -1,6 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
-import { BedDouble, Car, Coffee, ExternalLink, MapPin, Minus, Plus, Sparkles, Star, Users, Waves, Wifi } from "lucide-react";
+import {
+  BedDouble,
+  Car,
+  ChevronLeft,
+  ChevronRight,
+  Coffee,
+  ExternalLink,
+  MapPin,
+  Minus,
+  Plus,
+  Sparkles,
+  Star,
+  Users,
+  Waves,
+  Wifi,
+  X
+} from "lucide-react";
 import type { CmsPayload, Room } from "../../types";
 import { currency, publicApi } from "../../lib/api";
 import { GlassDatePicker, addDays, fromDateInputValue, toDateInputValue } from "../../components/GlassDatePicker";
@@ -21,7 +38,9 @@ export function HomePage() {
   const [loading, setLoading] = useState(true);
   const [guestOpen, setGuestOpen] = useState(false);
   const [activeHeroImage, setActiveHeroImage] = useState(0);
+  const [galleryLightboxIndex, setGalleryLightboxIndex] = useState<number | null>(null);
   const guestPickerRef = useRef<HTMLDivElement>(null);
+  const galleryScrollerRef = useRef<HTMLDivElement>(null);
 
   const updateCheckIn = (value: string) => {
     setCheckIn(value);
@@ -76,14 +95,41 @@ export function HomePage() {
     const metadata = cms?.sections.gallery?.metadata;
     return Array.isArray(metadata) ? metadata : [];
   }, [cms]);
+  const galleryImages = useMemo(() => Array.from(new Set(gallery.map((item) => String(item)).filter(Boolean))), [gallery]);
   const heroImages = useMemo(() => {
     const roomImages = rooms.flatMap((room) => room.images.map((image) => image.url));
-    const sources = [hero?.imageUrl, ...gallery.map((item) => String(item)), ...roomImages].filter(
+    const sources = [hero?.imageUrl, ...galleryImages, ...roomImages].filter(
       (source): source is string => Boolean(source)
     );
     return Array.from(new Set(sources)).slice(0, 6);
-  }, [gallery, hero?.imageUrl, rooms]);
+  }, [galleryImages, hero?.imageUrl, rooms]);
   const guestLabel = `${guests} ${guests === 1 ? "Guest" : "Guests"}`;
+  const activeGalleryLightboxImage = galleryLightboxIndex === null ? null : galleryImages[galleryLightboxIndex];
+
+  const shiftHeroImage = (direction: number) => {
+    if (heroImages.length <= 1) return;
+    setActiveHeroImage((index) => (index + direction + heroImages.length) % heroImages.length);
+  };
+
+  const shiftGallery = (direction: number) => {
+    const scroller = galleryScrollerRef.current;
+    if (!scroller || galleryImages.length <= 1) return;
+
+    const maxScroll = scroller.scrollWidth - scroller.clientWidth;
+    const slideDistance = Math.max(260, scroller.clientWidth * 0.72);
+
+    if (direction > 0 && scroller.scrollLeft >= maxScroll - 8) {
+      scroller.scrollTo({ left: 0, behavior: "smooth" });
+      return;
+    }
+
+    if (direction < 0 && scroller.scrollLeft <= 8) {
+      scroller.scrollTo({ left: maxScroll, behavior: "smooth" });
+      return;
+    }
+
+    scroller.scrollBy({ left: direction * slideDistance, behavior: "smooth" });
+  };
 
   useEffect(() => {
     setActiveHeroImage(0);
@@ -95,6 +141,25 @@ export function HomePage() {
 
     return () => window.clearInterval(interval);
   }, [heroImages.length]);
+
+  useEffect(() => {
+    if (galleryLightboxIndex === null || galleryImages.length === 0) return undefined;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setGalleryLightboxIndex(null);
+      }
+      if (event.key === "ArrowLeft") {
+        setGalleryLightboxIndex((index) => (index === null ? index : (index - 1 + galleryImages.length) % galleryImages.length));
+      }
+      if (event.key === "ArrowRight") {
+        setGalleryLightboxIndex((index) => (index === null ? index : (index + 1) % galleryImages.length));
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [galleryImages.length, galleryLightboxIndex]);
 
   if (loading) return <HomePageSkeleton />;
 
@@ -110,6 +175,16 @@ export function HomePage() {
             />
           ))}
         </div>
+        {heroImages.length > 1 ? (
+          <>
+            <button type="button" className="carousel-arrow hero-arrow previous" onClick={() => shiftHeroImage(-1)} aria-label="Previous hero image">
+              <ChevronLeft size={26} />
+            </button>
+            <button type="button" className="carousel-arrow hero-arrow next" onClick={() => shiftHeroImage(1)} aria-label="Next hero image">
+              <ChevronRight size={26} />
+            </button>
+          </>
+        ) : null}
         <header className="minimal-hero-header" aria-label="Landing page navigation">
           <Link to="/" className="minimal-hero-logo" aria-label="Home">
             <img src={brandLogoUrl} alt="Hotel logo" />
@@ -286,10 +361,32 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="gallery-strip" id="gallery">
-        {gallery.slice(0, 5).map((src: any, index) => (
-          <img key={String(src)} src={String(src)} alt={`Skardu gallery ${index + 1}`} />
-        ))}
+      <section className="gallery-strip gallery-carousel" id="gallery" aria-label="Skardu image gallery">
+        {galleryImages.length > 1 ? (
+          <button type="button" className="carousel-arrow gallery-arrow previous" onClick={() => shiftGallery(-1)} aria-label="Previous gallery images">
+            <ChevronLeft size={24} />
+          </button>
+        ) : null}
+        <div className="gallery-carousel-viewport" ref={galleryScrollerRef}>
+          <div className="gallery-carousel-track">
+            {galleryImages.map((src, index) => (
+              <button
+                type="button"
+                className="gallery-image-button gallery-carousel-item"
+                key={src}
+                onClick={() => setGalleryLightboxIndex(index)}
+                aria-label={`Open Skardu gallery image ${index + 1}`}
+              >
+                <img src={src} alt={`Skardu gallery ${index + 1}`} />
+              </button>
+            ))}
+          </div>
+        </div>
+        {galleryImages.length > 1 ? (
+          <button type="button" className="carousel-arrow gallery-arrow next" onClick={() => shiftGallery(1)} aria-label="Next gallery images">
+            <ChevronRight size={24} />
+          </button>
+        ) : null}
       </section>
 
       <section className="content-band center-band">
@@ -338,6 +435,38 @@ export function HomePage() {
           </em>
         </a>
       </section>
+      {activeGalleryLightboxImage
+        ? createPortal(
+            <div className="image-lightbox" role="dialog" aria-modal="true" aria-label="Skardu image gallery">
+              <button type="button" className="lightbox-close" onClick={() => setGalleryLightboxIndex(null)} aria-label="Close image view">
+                <X size={22} />
+              </button>
+              <button
+                type="button"
+                className="lightbox-nav previous"
+                onClick={() =>
+                  setGalleryLightboxIndex((index) => (index === null ? index : (index - 1 + galleryImages.length) % galleryImages.length))
+                }
+                aria-label="Previous image"
+              >
+                <ChevronLeft size={28} />
+              </button>
+              <img src={activeGalleryLightboxImage} alt={`Skardu gallery ${(galleryLightboxIndex || 0) + 1}`} />
+              <button
+                type="button"
+                className="lightbox-nav next"
+                onClick={() => setGalleryLightboxIndex((index) => (index === null ? index : (index + 1) % galleryImages.length))}
+                aria-label="Next image"
+              >
+                <ChevronRight size={28} />
+              </button>
+              <div className="lightbox-count">
+                {(galleryLightboxIndex || 0) + 1} / {galleryImages.length}
+              </div>
+            </div>,
+            document.body
+          )
+        : null}
     </main>
   );
 }
