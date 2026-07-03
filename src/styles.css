@@ -1,37 +1,5 @@
 @import url("https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&family=Manrope:wght@600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap");
 
-@font-face {
-  font-family: "Rivon Oddlini";
-  src: url("/fonts/rivon/oddlini-regular.otf") format("opentype");
-  font-display: swap;
-  font-style: normal;
-  font-weight: 400;
-}
-
-@font-face {
-  font-family: "Rivon Oddlini";
-  src: url("/fonts/rivon/oddlini-medium.otf") format("opentype");
-  font-display: swap;
-  font-style: normal;
-  font-weight: 500;
-}
-
-@font-face {
-  font-family: "Rivon Oddlini";
-  src: url("/fonts/rivon/oddlini-semibold.otf") format("opentype");
-  font-display: swap;
-  font-style: normal;
-  font-weight: 600;
-}
-
-@font-face {
-  font-family: "Rivon Oddlini";
-  src: url("/fonts/rivon/oddlini-bold.otf") format("opentype");
-  font-display: swap;
-  font-style: normal;
-  font-weight: 700 900;
-}
-
 :root {
   --night: #11110f;
   --ink: #202020;
@@ -45,7 +13,7 @@
   --success: #2f7d53;
   --danger: #bd3d32;
   --admin-bg: #f5f6f8;
-  --rivon-website-font: "Rivon Oddlini", "Hanken Grotesk", Inter, system-ui, sans-serif;
+  --rivon-website-font: "Hanken Grotesk", Inter, system-ui, sans-serif;
   font-family: Inter, system-ui, sans-serif;
   color: var(--ink);
   background: var(--soft);
