@@ -14,6 +14,7 @@ const emptyRoom = {
   sizeSqm: 35,
   status: "AVAILABLE" as RoomStatus,
   featured: false,
+  hideFromWebsite: false,
   amenitiesText: "Free Wi-Fi, Breakfast Included",
   imagesText: ""
 };
@@ -46,6 +47,7 @@ export function AdminRooms() {
       sizeSqm: room.sizeSqm || 35,
       status: room.status,
       featured: room.featured,
+      hideFromWebsite: room.hideFromWebsite,
       amenitiesText: room.amenities.map((amenity) => amenity.name).join(", "),
       imagesText: room.images.map((image) => image.url).join("\n")
     });
@@ -82,6 +84,7 @@ export function AdminRooms() {
         sizeSqm: Number(form.sizeSqm),
         status: form.status,
         featured: form.featured,
+        hideFromWebsite: form.hideFromWebsite,
         amenities: form.amenitiesText.split(",").map((item) => item.trim()).filter(Boolean),
         images: form.imagesText
           .split("\n")
@@ -144,7 +147,10 @@ export function AdminRooms() {
                 <span>{room.type}</span>
                 <h2>{room.name}</h2>
                 <p>{currency(room.pricePerNight)} / night</p>
-                <StatusBadge value={room.status} />
+                <div className="room-admin-badges">
+                  <StatusBadge value={room.status} />
+                  {room.hideFromWebsite ? <span className="badge badge-hidden">Hidden from website</span> : null}
+                </div>
               </div>
               <div className="admin-card-actions">
                 <button className="icon-button" onClick={() => startEdit(room)} aria-label={`Edit ${room.name}`}>
@@ -197,6 +203,14 @@ export function AdminRooms() {
         <label className="checkbox-line">
           <input type="checkbox" checked={form.featured} onChange={(event) => setForm({ ...form, featured: event.target.checked })} />
           Feature this room
+        </label>
+        <label className="checkbox-line">
+          <input
+            type="checkbox"
+            checked={form.hideFromWebsite}
+            onChange={(event) => setForm({ ...form, hideFromWebsite: event.target.checked })}
+          />
+          Hide from Website
         </label>
         <TextArea label="Description" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} />
         <TextArea label="Amenities (comma separated)" value={form.amenitiesText} onChange={(event) => setForm({ ...form, amenitiesText: event.target.value })} />

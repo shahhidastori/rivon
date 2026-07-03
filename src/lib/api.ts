@@ -71,6 +71,14 @@ export const publicApi = {
   rooms: (query = "") =>
     apiRequest<{ rooms: Room[]; filters: { types: string[] } }>(`/api/public/rooms${query}`),
   room: (slug: string) => apiRequest<{ room: Room }>(`/api/public/rooms/${slug}`),
+  uploadReceipt: (file: File) => {
+    const form = new FormData();
+    form.append("receipt", file);
+    return apiRequest<{ url: string; filename: string }>("/api/public/booking-receipts", {
+      method: "POST",
+      body: form
+    });
+  },
   createBooking: (body: {
     roomId: string;
     checkIn: string;
@@ -85,6 +93,7 @@ export const publicApi = {
     };
     paymentMethod: PaymentMethod;
     specialRequests?: string;
+    receiptUrl?: string;
   }) =>
     apiRequest<{ booking: Booking }>("/api/public/bookings", {
       method: "POST",

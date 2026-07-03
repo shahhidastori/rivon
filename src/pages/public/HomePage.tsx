@@ -7,7 +7,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Coffee,
-  ExternalLink,
   MapPin,
   Minus,
   Plus,
@@ -35,6 +34,7 @@ export function HomePage() {
   const [guests, setGuests] = useState(2);
   const [cms, setCms] = useState<CmsPayload | null>(null);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [hasBookableRooms, setHasBookableRooms] = useState(false);
   const [loading, setLoading] = useState(true);
   const [guestOpen, setGuestOpen] = useState(false);
   const [activeHeroImage, setActiveHeroImage] = useState(0);
@@ -60,10 +60,11 @@ export function HomePage() {
   };
 
   useEffect(() => {
-    Promise.all([publicApi.cms(), publicApi.rooms("?featured=true")])
-      .then(([cmsPayload, roomsPayload]) => {
+    Promise.all([publicApi.cms(), publicApi.rooms("?featured=true"), publicApi.rooms()])
+      .then(([cmsPayload, roomsPayload, allRoomsPayload]) => {
         setCms(cmsPayload);
         setRooms(roomsPayload.rooms);
+        setHasBookableRooms(allRoomsPayload.rooms.some((room) => room.status === "AVAILABLE"));
       })
       .finally(() => setLoading(false));
   }, []);
@@ -189,6 +190,7 @@ export function HomePage() {
             <a href="#about">Our Story</a>
             <a href="#facilities">Our Amenities</a>
             <a href="#gallery">Gallery</a>
+            {hasBookableRooms ? <Link to="/rooms">Book Rooms</Link> : null}
           </nav>
         </header>
 
@@ -297,61 +299,63 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="content-band">
-        <div className="section-heading-row">
-          <div>
-            <span className="section-kicker">Rooms</span>
-            <h2>Featured Rooms</h2>
+      {rooms.length > 0 ? (
+        <section className="content-band">
+          <div className="section-heading-row">
+            <div>
+              <span className="section-kicker">Rooms</span>
+              <h2>Featured Rooms</h2>
+            </div>
+            <Link to="/rooms" className="text-link">
+              View all rooms
+            </Link>
           </div>
-          <Link to="/rooms" className="text-link">
-            View all rooms
-          </Link>
-        </div>
-        <div className="room-card-grid">
-          {rooms.slice(0, 3).map((room) => (
-            <article
-              className="room-card clickable-room-card"
-              key={room.id}
-              onClick={() => navigate(`/rooms/${room.slug}`, { viewTransition: true })}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  navigate(`/rooms/${room.slug}`, { viewTransition: true });
-                }
-              }}
-              role="link"
-              tabIndex={0}
-              aria-label={`View details for ${room.name}`}
-            >
-              <img src={room.images[0]?.url} alt={room.images[0]?.alt || room.name} />
-              <div>
-                <span>{room.type}</span>
-                <h3>{room.name}</h3>
-                <p>{room.description}</p>
-                <div className="room-meta">
-                  <span>
-                    <BedDouble size={15} /> {room.beds} beds
-                  </span>
-                  <span>
-                    <Wifi size={15} /> {room.capacity} guests
-                  </span>
+          <div className="room-card-grid">
+            {rooms.slice(0, 3).map((room) => (
+              <article
+                className="room-card clickable-room-card"
+                key={room.id}
+                onClick={() => navigate(`/rooms/${room.slug}`, { viewTransition: true })}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    navigate(`/rooms/${room.slug}`, { viewTransition: true });
+                  }
+                }}
+                role="link"
+                tabIndex={0}
+                aria-label={`View details for ${room.name}`}
+              >
+                <img src={room.images[0]?.url} alt={room.images[0]?.alt || room.name} />
+                <div>
+                  <span>{room.type}</span>
+                  <h3>{room.name}</h3>
+                  <p>{room.description}</p>
+                  <div className="room-meta">
+                    <span>
+                      <BedDouble size={15} /> {room.beds} beds
+                    </span>
+                    <span>
+                      <Wifi size={15} /> {room.capacity} guests
+                    </span>
+                  </div>
+                  <div className="room-card-footer">
+                    <strong>{currency(room.pricePerNight)} / night</strong>
+                    <Link
+                      to={`/rooms/${room.slug}`}
+                      className="btn btn-dark"
+                      viewTransition
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      Details
+                    </Link>
+                  </div>
                 </div>
-                <div className="room-card-footer">
-                  <strong>{currency(room.pricePerNight)} / night</strong>
-                  <Link
-                    to={`/rooms/${room.slug}`}
-                    className="btn btn-dark"
-                    viewTransition
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    Details
-                  </Link>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section className="gallery-strip gallery-slider" id="gallery" aria-label="Skardu image gallery">
         {galleryImages.length > 5 ? (
@@ -377,7 +381,7 @@ export function HomePage() {
         ) : null}
       </section>
 
-      <section className="content-band location-band">
+      <section className="content-band location-band compact-location-band">
         <div>
           <span className="section-kicker">Location</span>
           <h2>{cms?.sections.contact?.title}</h2>
@@ -400,9 +404,6 @@ export function HomePage() {
           </span>
           <strong>Rivon Resort</strong>
           <small>International Airport Road, Skardu</small>
-          <em>
-            Open in Google Maps <ExternalLink size={14} />
-          </em>
         </a>
       </section>
       {activeGalleryLightboxImage

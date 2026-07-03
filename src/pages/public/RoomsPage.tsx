@@ -6,7 +6,6 @@ import {
   Car,
   Coffee,
   Filter,
-  MapPin,
   Mountain,
   ShieldCheck,
   Sparkles,
@@ -14,18 +13,12 @@ import {
   Wifi
 } from "lucide-react";
 import type { Room } from "../../types";
-import { currency, dateLabel, publicApi } from "../../lib/api";
+import { currency, publicApi } from "../../lib/api";
 import { Button, EmptyState, Field, SelectField, StatusBadge } from "../../components/ui";
 import { GlassDatePicker, addDays, fromDateInputValue, toDateInputValue } from "../../components/GlassDatePicker";
 import { RoomResultsSkeleton } from "../../components/Skeletons";
 
 const amenityIcons = [Wifi, Coffee, Car, Mountain, Sparkles, ShieldCheck];
-
-function dateSummary(checkIn?: string, checkOut?: string) {
-  if (!checkIn && !checkOut) return "Select dates";
-  if (checkIn && checkOut) return `${dateLabel(checkIn)} - ${dateLabel(checkOut)}`;
-  return checkIn ? `From ${dateLabel(checkIn)}` : `Until ${dateLabel(checkOut || "")}`;
-}
 
 export function RoomsPage() {
   const [params, setParams] = useSearchParams();
@@ -87,6 +80,7 @@ export function RoomsPage() {
   }
 
   const preservedSearch = params.toString();
+  const filterFormKey = `${preservedSearch}-${types.join("|")}`;
   const withPreservedSearch = (pathname: string) => ({
     pathname,
     search: preservedSearch ? `?${preservedSearch}` : ""
@@ -94,29 +88,8 @@ export function RoomsPage() {
 
   return (
     <main className="page-wrap rooms-page">
-      <section className="listing-search-strip glass-panel">
-        <div>
-          <MapPin size={18} />
-          <span>Destination</span>
-          <strong>Skardu, Pakistan</strong>
-        </div>
-        <div>
-          <CalendarDays size={18} />
-          <span>Check-in / out</span>
-          <strong>{dateSummary(initial.checkIn, initial.checkOut)}</strong>
-        </div>
-        <div>
-          <Users size={18} />
-          <span>Guests</span>
-          <strong>{initial.guests || "2"} guests</strong>
-        </div>
-        <a href="#room-filters" className="btn btn-ghost">
-          Modify Search
-        </a>
-      </section>
-
       <div className="listing-layout">
-        <form className="filter-panel luxury-panel" id="room-filters" key={preservedSearch} onSubmit={submit}>
+        <form className="filter-panel luxury-panel" id="room-filters" key={filterFormKey} onSubmit={submit}>
           <div className="filter-heading">
             <h2>
               <Filter size={18} />
@@ -125,6 +98,22 @@ export function RoomsPage() {
             <button type="button" className="text-link reset-link" onClick={() => setParams({})}>
               Reset All
             </button>
+          </div>
+          <div className="filter-date-grid">
+            <GlassDatePicker
+              label="Check-in Date"
+              name="checkIn"
+              value={filterDates.checkIn}
+              minDate={today}
+              onChange={updateFilterCheckIn}
+            />
+            <GlassDatePicker
+              label="Check-out Date"
+              name="checkOut"
+              value={filterDates.checkOut}
+              minDate={filterDates.checkIn ? toDateInputValue(addDays(fromDateInputValue(filterDates.checkIn), 1)) : today}
+              onChange={(value) => setFilterDates((current) => ({ ...current, checkOut: value }))}
+            />
           </div>
           <SelectField label="Room type" name="type" defaultValue={initial.type}>
             <option value="all">All types</option>
@@ -137,22 +126,6 @@ export function RoomsPage() {
           <Field label="Guests" name="guests" type="number" min={1} defaultValue={initial.guests} />
           <Field label="Min price" name="minPrice" type="number" min={0} defaultValue={initial.minPrice} />
           <Field label="Max price" name="maxPrice" type="number" min={0} defaultValue={initial.maxPrice} />
-          <div className="filter-date-grid">
-            <GlassDatePicker
-              label="Check-in"
-              name="checkIn"
-              value={filterDates.checkIn}
-              minDate={today}
-              onChange={updateFilterCheckIn}
-            />
-            <GlassDatePicker
-              label="Check-out"
-              name="checkOut"
-              value={filterDates.checkOut}
-              minDate={filterDates.checkIn ? toDateInputValue(addDays(fromDateInputValue(filterDates.checkIn), 1)) : today}
-              onChange={(value) => setFilterDates((current) => ({ ...current, checkOut: value }))}
-            />
-          </div>
           <Button type="submit">Apply Filters</Button>
 
           <div className="popular-tags" aria-label="Popular room tags">
@@ -228,11 +201,8 @@ export function RoomsPage() {
                     <span>Per night</span>
                     <strong>{currency(room.pricePerNight)}</strong>
                     <div className="room-card-actions">
-                      <Link to={withPreservedSearch(`/rooms/${room.slug}`)} className="btn btn-ghost" viewTransition>
-                        Details
-                      </Link>
-                      <Link to={withPreservedSearch(`/booking/${room.slug}`)} className="btn btn-primary">
-                        Book
+                      <Link to={withPreservedSearch(`/rooms/${room.slug}`)} className="btn btn-primary" viewTransition>
+                        View Details
                       </Link>
                     </div>
                   </aside>

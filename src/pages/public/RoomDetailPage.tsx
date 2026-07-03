@@ -253,16 +253,16 @@ export function RoomDetailPage() {
             </div>
             <p>Inclusive of all luxury resort access and local guest care.</p>
             <div className="mini-date-grid">
-              <GlassDatePicker label="Check-in" value={checkIn} minDate={defaultCheckIn} onChange={updateCheckIn} />
+              <GlassDatePicker label="Check-in Date *" value={checkIn} minDate={defaultCheckIn} onChange={updateCheckIn} />
               <GlassDatePicker
-                label="Check-out"
+                label="Check-out Date *"
                 value={checkOut}
                 minDate={toDateInputValue(addDays(fromDateInputValue(checkIn), 1))}
                 onChange={setCheckOut}
               />
             </div>
             <label className="field">
-              <span>Guests</span>
+              <span>Number of Guests *</span>
               <select value={Math.max(1, Math.min(room.capacity, guests || 1))} onChange={(event) => setGuests(Number(event.target.value))}>
                 {Array.from({ length: room.capacity }).map((_, index) => (
                   <option key={index + 1} value={index + 1}>

@@ -285,7 +285,8 @@ adminRouter.post("/rooms", async (req, res, next) => {
           capacity: payload.capacity,
           sizeSqm: payload.sizeSqm ?? null,
           status: payload.status,
-          featured: payload.featured
+          featured: payload.featured,
+          hideFromWebsite: payload.hideFromWebsite
         }
       });
       await syncRoomRelations(tx, created.id, payload.amenities, payload.images);
@@ -316,7 +317,8 @@ adminRouter.patch("/rooms/:id", async (req, res, next) => {
           capacity: payload.capacity,
           sizeSqm: payload.sizeSqm ?? null,
           status: payload.status,
-          featured: payload.featured
+          featured: payload.featured,
+          hideFromWebsite: payload.hideFromWebsite
         }
       });
       await syncRoomRelations(tx, updated.id, payload.amenities, payload.images);

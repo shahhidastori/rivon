@@ -150,7 +150,7 @@ export function BookingPageSkeleton() {
       <span className="sr-only">Loading booking flow</span>
       <SkeletonBlock className="back-link-skeleton" />
       <div className="booking-progress-line skeleton-progress" aria-hidden="true">
-        {Array.from({ length: 3 }).map((_, index) => (
+        {Array.from({ length: 4 }).map((_, index) => (
           <div key={index}>
             <SkeletonBlock className="step-dot" />
             <SkeletonBlock className="step-label" />
@@ -177,8 +177,7 @@ export function BookingPageSkeleton() {
         <aside className="booking-summary-card booking-total-card skeleton-card">
           <SkeletonBlock className="eyebrow" />
           <SkeletonBlock className="heading" />
-          <SkeletonLines count={4} />
-          <SkeletonBlock className="button full" />
+          <SkeletonLines count={5} />
         </aside>
       </div>
     </main>

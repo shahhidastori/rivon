@@ -29,6 +29,7 @@ export type Room = {
   sizeSqm?: number | null;
   status: RoomStatus;
   featured: boolean;
+  hideFromWebsite: boolean;
   images: RoomImage[];
   amenities: Amenity[];
 };

@@ -14,7 +14,8 @@ export const publicBookingSchema = z.object({
     country: z.string().optional().default("")
   }),
   paymentMethod: z.nativeEnum(PaymentMethod),
-  specialRequests: z.string().optional().default("")
+  specialRequests: z.string().optional().default(""),
+  receiptUrl: z.string().optional().default("")
 });
 
 export const bookingLookupSchema = z.object({
@@ -32,6 +33,7 @@ export const roomSchema = z.object({
   sizeSqm: z.coerce.number().int().min(1).optional().nullable(),
   status: z.nativeEnum(RoomStatus).default("AVAILABLE"),
   featured: z.coerce.boolean().default(false),
+  hideFromWebsite: z.coerce.boolean().default(false),
   amenities: z.array(z.string().min(2)).default([]),
   images: z
     .array(

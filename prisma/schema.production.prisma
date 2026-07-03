@@ -72,6 +72,7 @@ model Room {
   sizeSqm       Int?
   status        RoomStatus    @default(AVAILABLE)
   featured      Boolean       @default(false)
+  hideFromWebsite Boolean      @default(false)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   images        RoomImage[]

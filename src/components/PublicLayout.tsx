@@ -1,6 +1,7 @@
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { Facebook, Instagram, Mail, MapPin, Menu, Phone } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { publicApi } from "../lib/api";
 import { fallbackBrandLogo, useBrandLogo } from "../hooks/useBrandLogo";
 
 const FACEBOOK_URL = "https://www.facebook.com/profile.php?id=61563652525104#";
@@ -26,11 +27,27 @@ type BrandLogoProps = {
 
 export function PublicHeader({ logoUrl = fallbackBrandLogo }: BrandLogoProps) {
   const [open, setOpen] = useState(false);
+  const [hasBookableRooms, setHasBookableRooms] = useState(false);
   const links = [
     ["Our Story", "/#about"],
     ["Our Amenities", "/#facilities"],
     ["Gallery", "/#gallery"]
   ];
+
+  useEffect(() => {
+    let cancelled = false;
+    publicApi
+      .rooms()
+      .then((payload) => {
+        if (!cancelled) setHasBookableRooms(payload.rooms.some((room) => room.status === "AVAILABLE"));
+      })
+      .catch(() => {
+        if (!cancelled) setHasBookableRooms(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <header className="public-header">
@@ -43,6 +60,7 @@ export function PublicHeader({ logoUrl = fallbackBrandLogo }: BrandLogoProps) {
             {label}
           </NavLink>
         ))}
+        {hasBookableRooms ? <NavLink to="/rooms">Book Rooms</NavLink> : null}
       </nav>
       <button className="icon-button mobile-only" onClick={() => setOpen((value) => !value)} aria-label="Open menu">
         <Menu size={20} />
@@ -56,6 +74,11 @@ export function PublicHeader({ logoUrl = fallbackBrandLogo }: BrandLogoProps) {
             {label}
           </NavLink>
         ))}
+        {hasBookableRooms ? (
+          <NavLink to="/rooms" onClick={() => setOpen(false)}>
+            Book Rooms
+          </NavLink>
+        ) : null}
       </nav>
     </header>
   );

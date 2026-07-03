@@ -6,6 +6,18 @@ import { Button, Field, TextArea } from "../../components/ui";
 import { RichTextEditor } from "../../components/RichTextEditor";
 import { announceBrandLogoUpdate, fallbackBrandLogo, versionedBrandLogoUrl } from "../../hooks/useBrandLogo";
 
+function fileToDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") resolve(reader.result);
+      else reject(new Error("Could not read the prepared logo image."));
+    };
+    reader.onerror = () => reject(new Error("Could not read the prepared logo image."));
+    reader.readAsDataURL(file);
+  });
+}
+
 export function AdminCms() {
   const [sections, setSections] = useState<CmsSection[]>([]);
   const [pages, setPages] = useState<CmsPage[]>([]);
@@ -68,12 +80,12 @@ export function AdminCms() {
 
     try {
       const transparentLogo = await prepareTransparentLogo(file);
-      const uploaded = await adminApi.uploadImage(transparentLogo);
+      const logoDataUrl = await fileToDataUrl(transparentLogo);
       const payload = await adminApi.saveSection("branding", {
         title: brandingSection?.title || "Brand Logo",
         subtitle: brandingSection?.subtitle || "Rivon Resort",
         body: brandingSection?.body || "Logo used across public and admin brand areas.",
-        imageUrl: uploaded.url,
+        imageUrl: logoDataUrl,
         metadataJson: brandingSection?.metadataJson || JSON.stringify({ alt: "Hotel logo" })
       });
 

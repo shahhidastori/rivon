@@ -1,5 +1,9 @@
 import crypto from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { Request, Response, Router } from "express";
+import multer from "multer";
 import { BookingStatus, PaymentMethod, PaymentStatus } from "@prisma/client";
 import { prisma } from "../db.js";
 import {
@@ -14,6 +18,37 @@ import {
 import { bookingLookupSchema, publicBookingSchema } from "../validators.js";
 
 export const publicRouter = Router();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const receiptUploadDir = path.resolve(__dirname, "../../uploads/receipts");
+
+fs.mkdirSync(receiptUploadDir, { recursive: true });
+
+const receiptStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, receiptUploadDir),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const base = path
+      .basename(file.originalname, ext)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)+/g, "");
+    cb(null, `${Date.now()}-${base || "receipt"}${ext}`);
+  }
+});
+
+const receiptUpload = multer({
+  storage: receiptStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (!file.mimetype.startsWith("image/") && file.mimetype !== "application/pdf") {
+      cb(new Error("Only image or PDF receipts are allowed."));
+      return;
+    }
+    cb(null, true);
+  }
+});
 
 const roomInclude = {
   images: true,
@@ -43,6 +78,14 @@ function sendCachedJson(req: Request, res: Response, payload: unknown) {
 
   return res.type("application/json").send(body);
 }
+
+publicRouter.post("/booking-receipts", receiptUpload.single("receipt"), (req, res) => {
+  if (!req.file) return res.status(400).json({ message: "Receipt file is required." });
+  res.status(201).json({
+    url: `/uploads/receipts/${req.file.filename}`,
+    filename: req.file.filename
+  });
+});
 
 publicRouter.get("/cms", async (req, res, next) => {
   try {
@@ -79,7 +122,7 @@ publicRouter.get("/cms", async (req, res, next) => {
 publicRouter.get("/rooms", async (req, res, next) => {
   try {
     const { type, guests, minPrice, maxPrice, checkIn, checkOut, featured } = req.query;
-    const where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = { hideFromWebsite: false };
 
     if (type && String(type) !== "all") where.type = String(type);
     if (guests) where.capacity = { gte: Number(guests) };
@@ -111,6 +154,7 @@ publicRouter.get("/rooms", async (req, res, next) => {
     });
 
     const types = await prisma.room.findMany({
+      where: { hideFromWebsite: false },
       distinct: ["type"],
       select: { type: true },
       orderBy: { type: "asc" }
@@ -132,7 +176,7 @@ publicRouter.get("/rooms/:slug", async (req, res, next) => {
       include: roomInclude
     });
 
-    if (!room) return res.status(404).json({ message: "Room not found." });
+    if (!room || room.hideFromWebsite) return res.status(404).json({ message: "Room not found." });
 
     sendCachedJson(req, res, { room: serializeRoom(room) });
   } catch (error) {
@@ -152,7 +196,7 @@ publicRouter.post("/bookings", async (req, res, next) => {
       include: roomInclude
     });
 
-    if (!room || room.status !== "AVAILABLE") {
+    if (!room || room.hideFromWebsite || room.status !== "AVAILABLE") {
       return res.status(404).json({ message: "Selected room is not available." });
     }
 
@@ -208,7 +252,12 @@ publicRouter.post("/bookings", async (req, res, next) => {
               paidAt: payload.paymentMethod === PaymentMethod.CARD ? new Date() : null,
               notes:
                 payload.paymentMethod === PaymentMethod.BANK_TRANSFER
-                  ? "Guest selected bank transfer; awaiting payment confirmation."
+                  ? [
+                      "Guest selected bank transfer; awaiting payment confirmation.",
+                      payload.receiptUrl ? `Receipt: ${payload.receiptUrl}` : ""
+                    ]
+                      .filter(Boolean)
+                      .join(" ")
                   : payload.paymentMethod === PaymentMethod.CASH
                     ? "Guest will pay at the property."
                     : "Demo card payment captured."
