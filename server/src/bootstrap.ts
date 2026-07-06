@@ -1,12 +1,58 @@
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import bcrypt from "bcryptjs";
 import { prisma } from "./db.js";
 import { adminSeed, amenitySeeds, cmsPageSeeds, cmsSectionSeeds, roomSeeds, skarduImages } from "./demoContent.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const uploadsDir = path.resolve(__dirname, "../uploads");
 
 const slugify = (value: string) =>
   value
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)+/g, "");
+
+const imageMimeTypes: Record<string, string> = {
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".webp": "image/webp",
+  ".gif": "image/gif",
+  ".svg": "image/svg+xml"
+};
+
+function uploadedAssetPath(uploadUrl: string) {
+  const filename = uploadUrl.replace(/^\/uploads\//, "");
+  if (!filename || filename.includes("..") || path.isAbsolute(filename)) return null;
+  return path.join(uploadsDir, filename);
+}
+
+async function ensurePersistentBrandLogo() {
+  const branding = await prisma.cmsSection.findUnique({ where: { key: "branding" } });
+  const imageUrl = branding?.imageUrl?.trim();
+
+  if (!branding || !imageUrl?.startsWith("/uploads/")) return;
+
+  const filePath = uploadedAssetPath(imageUrl);
+  if (filePath && fs.existsSync(filePath)) {
+    const extension = path.extname(filePath).toLowerCase();
+    const mimeType = imageMimeTypes[extension] || "application/octet-stream";
+    const file = await fs.promises.readFile(filePath);
+    await prisma.cmsSection.update({
+      where: { key: "branding" },
+      data: { imageUrl: `data:${mimeType};base64,${file.toString("base64")}` }
+    });
+    return;
+  }
+
+  await prisma.cmsSection.update({
+    where: { key: "branding" },
+    data: { imageUrl: null }
+  });
+}
 
 export async function ensureBaselineContent() {
   if (process.env.AUTO_SEED === "false") return;
@@ -97,6 +143,8 @@ export async function ensureBaselineContent() {
       create: section
     });
   }
+
+  await ensurePersistentBrandLogo();
 
   for (const page of cmsPageSeeds) {
     await prisma.cmsPage.upsert({

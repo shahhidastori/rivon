@@ -5,10 +5,12 @@ import { Router } from "express";
 import multer from "multer";
 import { BookingStatus, PaymentMethod, PaymentStatus, Prisma } from "@prisma/client";
 import { prisma } from "../db.js";
+import { recordAnalyticsEvent } from "../analytics.js";
+import { buildAnalyticsReport } from "../analytics-report.js";
 import {
   activeBookingStatuses,
   calculateNights,
-  generateReference,
+  generateUniqueReference,
   normalizePaymentStatus,
   normalizeStatus,
   parseDate,
@@ -19,6 +21,7 @@ import {
 } from "../utils.js";
 import {
   adminBookingSchema,
+  analyticsQuerySchema,
   bookingStatusSchema,
   cmsPageSchema,
   cmsSectionSchema,
@@ -144,6 +147,11 @@ async function createBooking(payload: ReturnType<typeof adminBookingSchema.parse
   const totalAmount = nights * room.pricePerNight;
 
   return prisma.$transaction(async (tx) => {
+    const reference = await generateUniqueReference(async (candidate) => {
+      const match = await tx.booking.findUnique({ where: { reference: candidate }, select: { id: true } });
+      return Boolean(match);
+    });
+
     const customer = await tx.customer.create({
       data: {
         firstName: payload.customer.firstName,
@@ -156,7 +164,7 @@ async function createBooking(payload: ReturnType<typeof adminBookingSchema.parse
 
     return tx.booking.create({
       data: {
-        reference: generateReference(),
+        reference,
         customerId: customer.id,
         roomId: room.id,
         checkIn,
@@ -235,6 +243,16 @@ adminRouter.get("/dashboard", async (_req, res, next) => {
       },
       recentBookings: recentBookings.map(serializeBooking)
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.get("/analytics", async (req, res, next) => {
+  try {
+    const query = analyticsQuerySchema.parse(req.query);
+    const analytics = await buildAnalyticsReport(query);
+    res.json(analytics);
   } catch (error) {
     next(error);
   }
@@ -400,6 +418,25 @@ adminRouter.post("/bookings", async (req, res, next) => {
   try {
     const payload = adminBookingSchema.parse(req.body);
     const booking = await createBooking(payload);
+    void recordAnalyticsEvent(
+      {
+        eventType: "booking_completed",
+        bookingId: booking.id,
+        roomId: booking.roomId,
+        pageName: "Admin Manual Booking",
+        metadata: {
+          reference: booking.reference,
+          roomName: booking.room.name,
+          roomType: booking.room.type,
+          checkIn: booking.checkIn.toISOString(),
+          checkOut: booking.checkOut.toISOString(),
+          guests: booking.guests,
+          source: booking.source,
+          totalAmount: booking.totalAmount
+        }
+      },
+      req
+    ).catch(() => undefined);
     res.status(201).json({ booking: serializeBooking(booking) });
   } catch (error) {
     next(error);
@@ -422,6 +459,10 @@ adminRouter.get("/bookings/:id", async (req, res, next) => {
 adminRouter.patch("/bookings/:id", async (req, res, next) => {
   try {
     const payload = bookingStatusSchema.parse(req.body);
+    const previous = await prisma.booking.findUnique({
+      where: { id: req.params.id },
+      include: bookingInclude
+    });
     const booking = await prisma.booking.update({
       where: { id: req.params.id },
       data: {
@@ -430,6 +471,24 @@ adminRouter.patch("/bookings/:id", async (req, res, next) => {
       },
       include: bookingInclude
     });
+    if (payload.status === "CANCELLED" && previous?.status !== "CANCELLED") {
+      void recordAnalyticsEvent(
+        {
+          eventType: "booking_cancelled",
+          bookingId: booking.id,
+          roomId: booking.roomId,
+          pageName: "Admin Booking Management",
+          metadata: {
+            reference: booking.reference,
+            roomName: booking.room.name,
+            roomType: booking.room.type,
+            status: booking.status,
+            source: "admin"
+          }
+        },
+        req
+      ).catch(() => undefined);
+    }
     res.json({ booking: serializeBooking(booking) });
   } catch (error) {
     next(error);

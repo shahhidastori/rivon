@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import {
@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import type { Room } from "../../types";
 import { currency, publicApi } from "../../lib/api";
+import { trackAnalyticsEvent } from "../../lib/analytics";
 import { EmptyState, StatusBadge } from "../../components/ui";
 import { GlassDatePicker, addDays, fromDateInputValue, toDateInputValue } from "../../components/GlassDatePicker";
 import { RoomDetailSkeleton } from "../../components/Skeletons";
@@ -37,6 +38,7 @@ export function RoomDetailPage() {
   const [error, setError] = useState("");
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [savedRoomSlugs, setSavedRoomSlugs] = useState<string[]>([]);
+  const trackedRoomKey = useRef("");
   const defaultCheckIn = toDateInputValue(addDays(new Date(), 1));
   const defaultCheckOut = toDateInputValue(addDays(new Date(), 4));
   const [checkIn, setCheckIn] = useState(params.get("checkIn") || defaultCheckIn);
@@ -66,6 +68,25 @@ export function RoomDetailPage() {
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [slug]);
+
+  useEffect(() => {
+    if (!room) return;
+    const key = `${room.id}|${checkIn}|${checkOut}|${guests}`;
+    if (trackedRoomKey.current === key) return;
+    trackedRoomKey.current = key;
+    trackAnalyticsEvent("room_detail_view", {
+      pageName: `Room Detail: ${room.name}`,
+      roomId: room.id,
+      metadata: {
+        roomName: room.name,
+        roomType: room.type,
+        pricePerNight: room.pricePerNight,
+        checkIn,
+        checkOut,
+        guests
+      }
+    });
+  }, [checkIn, checkOut, guests, room]);
 
   useEffect(() => {
     if (lightboxIndex === null) return;

@@ -1,3 +1,4 @@
+import { randomInt } from "node:crypto";
 import type { BookingStatus, PaymentStatus, Prisma, RoomStatus } from "@prisma/client";
 import { addDays, differenceInCalendarDays, isBefore, parseISO } from "date-fns";
 
@@ -25,9 +26,16 @@ export function canCancelBooking(status: BookingStatus, checkIn: Date) {
 }
 
 export function generateReference() {
-  const stamp = Date.now().toString(36).toUpperCase();
-  const random = Math.random().toString(36).slice(2, 6).toUpperCase();
-  return `RVN-${stamp}-${random}`;
+  return `RVN- ${randomInt(100000, 1000000)}`;
+}
+
+export async function generateUniqueReference(exists: (reference: string) => Promise<boolean>) {
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const reference = generateReference();
+    if (!(await exists(reference))) return reference;
+  }
+
+  throw new Error("Unable to generate a unique booking reference. Please try again.");
 }
 
 export function slugify(value: string) {

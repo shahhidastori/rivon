@@ -34,6 +34,9 @@ app.use(
     maxAge: "30d"
   })
 );
+app.use("/uploads", (_req, res) => {
+  res.status(404).json({ message: "Uploaded asset not found." });
+});
 
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, service: "hotel-booking-platform" });

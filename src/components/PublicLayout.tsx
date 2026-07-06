@@ -1,7 +1,8 @@
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { Facebook, Instagram, Mail, MapPin, Menu, Phone } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { publicApi } from "../lib/api";
+import { trackAnalyticsEvent } from "../lib/analytics";
 import { fallbackBrandLogo, useBrandLogo } from "../hooks/useBrandLogo";
 
 const FACEBOOK_URL = "https://www.facebook.com/profile.php?id=61563652525104#";
@@ -85,10 +86,30 @@ export function PublicHeader({ logoUrl = fallbackBrandLogo }: BrandLogoProps) {
 }
 
 export function PublicFooter({ logoUrl = fallbackBrandLogo }: BrandLogoProps) {
+  const footerRef = useRef<HTMLElement>(null);
+  const trackedContact = useRef(false);
+
+  useEffect(() => {
+    const footer = footerRef.current;
+    if (!footer) return undefined;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting || trackedContact.current) return;
+        trackedContact.current = true;
+        trackAnalyticsEvent("page_view", { pageName: "Contact Page" });
+      },
+      { threshold: 0.4 }
+    );
+    observer.observe(footer);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <footer className="public-footer">
+    <footer className="public-footer" id="contact" ref={footerRef}>
       <div className="footer-brand">
-        <img className="footer-logo-image" src={logoUrl} alt="Hotel logo" />
+        <span className="footer-logo-glass">
+          <img className="footer-logo-image" src={logoUrl} alt="Hotel logo" />
+        </span>
         <p>Peaceful Skardu stays, mountain views, local hospitality, and a seamless booking experience.</p>
         <div className="footer-socials" aria-label="Social media links">
           <a href={FACEBOOK_URL} target="_blank" rel="noreferrer" aria-label="Visit Rivon Resort on Facebook">

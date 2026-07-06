@@ -1,5 +1,5 @@
 import { NavLink, Navigate, Outlet, useNavigate } from "react-router-dom";
-import { BedDouble, BookOpenCheck, LayoutDashboard, LogOut, PanelLeft, Users, Wand2 } from "lucide-react";
+import { BarChart3, BedDouble, BookOpenCheck, LayoutDashboard, LogOut, PanelLeft, Users, Wand2 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useBrandLogo } from "../hooks/useBrandLogo";
@@ -19,6 +19,7 @@ export function AdminLayout() {
     ["Rooms", "/admin/rooms", BedDouble],
     ["Bookings", "/admin/bookings", BookOpenCheck],
     ["Customers", "/admin/customers", Users],
+    ["Analytics", "/admin/analytics", BarChart3],
     ["CMS", "/admin/cms", Wand2]
   ] as const;
 

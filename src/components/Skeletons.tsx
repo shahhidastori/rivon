@@ -241,7 +241,7 @@ export function AdminShellSkeleton() {
       <aside className="admin-sidebar">
         <SkeletonBlock className="admin-logo-skeleton" />
         <nav>
-          {Array.from({ length: 5 }).map((_, index) => (
+          {Array.from({ length: 6 }).map((_, index) => (
             <SkeletonBlock className="admin-nav-skeleton" key={index} />
           ))}
         </nav>

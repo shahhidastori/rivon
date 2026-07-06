@@ -1,5 +1,6 @@
 import { FormEvent, useState } from "react";
 import { dateLabel, publicApi, currency } from "../../lib/api";
+import { getAnalyticsContext } from "../../lib/analytics";
 import type { Booking } from "../../types";
 import { Button, Field, StatusBadge } from "../../components/ui";
 
@@ -30,7 +31,20 @@ export function LookupPage() {
     setLoading(true);
     setMessage("");
     try {
-      const payload = await publicApi.cancelBooking(booking.reference, email);
+      const payload = await publicApi.cancelBooking(
+        booking.reference,
+        email,
+        getAnalyticsContext({
+          pageName: "Booking Lookup Page",
+          roomId: booking.room.id,
+          metadata: {
+            reference: booking.reference,
+            roomName: booking.room.name,
+            roomType: booking.room.type,
+            status: booking.status
+          }
+        })
+      );
       setBooking(payload.booking);
       setMessage("Booking cancelled successfully.");
     } catch (err) {

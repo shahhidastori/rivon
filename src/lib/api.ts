@@ -1,5 +1,7 @@
 import type {
   AdminProfile,
+  AnalyticsContext,
+  AnalyticsReport,
   Booking,
   BookingStatus,
   CmsPage,
@@ -94,6 +96,7 @@ export const publicApi = {
     paymentMethod: PaymentMethod;
     specialRequests?: string;
     receiptUrl?: string;
+    analytics?: AnalyticsContext;
   }) =>
     apiRequest<{ booking: Booking }>("/api/public/bookings", {
       method: "POST",
@@ -104,10 +107,10 @@ export const publicApi = {
       method: "POST",
       body: JSON.stringify(body)
     }),
-  cancelBooking: (reference: string, email: string) =>
-    apiRequest<{ booking: Booking }>(`/api/public/bookings/${reference}/cancel`, {
+  cancelBooking: (reference: string, email: string, analytics?: AnalyticsContext) =>
+    apiRequest<{ booking: Booking }>(`/api/public/bookings/${encodeURIComponent(reference)}/cancel`, {
       method: "PATCH",
-      body: JSON.stringify({ email })
+      body: JSON.stringify({ email, analytics })
     })
 };
 
@@ -131,6 +134,7 @@ export const adminApi = {
       revenue: { paid: number; expected: number };
       recentBookings: Booking[];
     }>("/api/admin/dashboard", { auth: true }),
+  analytics: (query = "") => apiRequest<AnalyticsReport>(`/api/admin/analytics${query}`, { auth: true }),
   rooms: (query = "") => apiRequest<{ rooms: Room[] }>(`/api/admin/rooms${query}`, { auth: true }),
   saveRoom: (room: AdminRoomPayload) =>
     apiRequest<{ room: Room }>(room.id ? `/api/admin/rooms/${room.id}` : "/api/admin/rooms", {

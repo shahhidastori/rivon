@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import type { CmsPayload, Room } from "../../types";
 import { currency, publicApi } from "../../lib/api";
+import { trackAnalyticsEvent } from "../../lib/analytics";
 import { GlassDatePicker, addDays, fromDateInputValue, toDateInputValue } from "../../components/GlassDatePicker";
 import { fallbackBrandLogo, useBrandLogo, versionedBrandLogoUrl } from "../../hooks/useBrandLogo";
 import { HomePageSkeleton } from "../../components/Skeletons";
@@ -41,6 +42,7 @@ export function HomePage() {
   const [galleryStartIndex, setGalleryStartIndex] = useState(0);
   const [galleryLightboxIndex, setGalleryLightboxIndex] = useState<number | null>(null);
   const guestPickerRef = useRef<HTMLDivElement>(null);
+  const trackedSections = useRef(new Set<string>());
 
   const updateCheckIn = (value: string) => {
     setCheckIn(value);
@@ -157,6 +159,34 @@ export function HomePage() {
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [galleryImages.length, galleryLightboxIndex]);
+
+  useEffect(() => {
+    if (loading) return undefined;
+    const sectionLabels: Record<string, string> = {
+      about: "About Page",
+      facilities: "Amenities Page",
+      gallery: "Gallery Page",
+      location: "Location Page"
+    };
+    const sections = Object.keys(sectionLabels)
+      .map((id) => document.getElementById(id))
+      .filter((section): section is HTMLElement => Boolean(section));
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const sectionId = entry.target.id;
+          if (!entry.isIntersecting || trackedSections.current.has(sectionId)) return;
+          trackedSections.current.add(sectionId);
+          trackAnalyticsEvent("page_view", { pageName: sectionLabels[sectionId] });
+        });
+      },
+      { threshold: 0.45 }
+    );
+
+    sections.forEach((section) => observer.observe(section));
+    return () => observer.disconnect();
+  }, [loading]);
 
   if (loading) return <HomePageSkeleton />;
 
@@ -381,7 +411,7 @@ export function HomePage() {
         ) : null}
       </section>
 
-      <section className="content-band location-band compact-location-band">
+      <section className="content-band location-band compact-location-band" id="location">
         <div>
           <span className="section-kicker">Location</span>
           <h2>{cms?.sections.contact?.title}</h2>

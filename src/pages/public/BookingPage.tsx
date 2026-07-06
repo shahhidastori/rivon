@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { addDays as addDateFnsDays, differenceInCalendarDays, format } from "date-fns";
 import {
@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import type { Booking, PaymentMethod, Room } from "../../types";
 import { currency, dateLabel, publicApi } from "../../lib/api";
+import { getAnalyticsContext, trackAnalyticsEvent } from "../../lib/analytics";
 import { Button, Field, TextArea } from "../../components/ui";
 import { BookingPageSkeleton } from "../../components/Skeletons";
 
@@ -41,6 +42,7 @@ export function BookingPage() {
   const [error, setError] = useState("");
   const [confirmed, setConfirmed] = useState<Booking | null>(null);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const trackedBookingKey = useRef("");
   const [form, setForm] = useState({
     checkIn: initialCheckIn,
     checkOut: initialCheckOut,
@@ -83,6 +85,44 @@ export function BookingPage() {
         search: `?${bookingSearchParams.toString()}`
       }
     : "/rooms";
+
+  useEffect(() => {
+    if (!selectedRoom || confirmed) return;
+    const key = `${selectedRoom.id}|${form.checkIn}|${form.checkOut}|${guestCount}`;
+    if (trackedBookingKey.current === key) return;
+    trackedBookingKey.current = key;
+
+    const metadata = {
+      roomName: selectedRoom.name,
+      roomType: selectedRoom.type,
+      checkIn: form.checkIn,
+      checkOut: form.checkOut,
+      guests: guestCount,
+      nights,
+      totalAmount: total
+    };
+
+    trackAnalyticsEvent("booking_started", {
+      pageName: "Booking Started Page",
+      roomId: selectedRoom.id,
+      metadata
+    });
+    trackAnalyticsEvent("booking_preview_view", {
+      pageName: "Booking Preview Page",
+      roomId: selectedRoom.id,
+      metadata
+    });
+    trackAnalyticsEvent("guest_details_view", {
+      pageName: "Guest Details Page",
+      roomId: selectedRoom.id,
+      metadata
+    });
+    trackAnalyticsEvent("payment_step_view", {
+      pageName: "Payment Step Page",
+      roomId: selectedRoom.id,
+      metadata
+    });
+  }, [confirmed, form.checkIn, form.checkOut, guestCount, nights, selectedRoom, total]);
 
   function update(key: keyof typeof form, value: string | number) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -148,7 +188,22 @@ export function BookingPage() {
         },
         specialRequests,
         paymentMethod: form.paymentMethod,
-        receiptUrl: uploadedReceipt?.url
+        receiptUrl: uploadedReceipt?.url,
+        analytics: getAnalyticsContext({
+          pageName: "Guest Details & Payment Page",
+          roomId: selectedRoom.id,
+          metadata: {
+            roomName: selectedRoom.name,
+            roomType: selectedRoom.type,
+            checkIn: form.checkIn,
+            checkOut: form.checkOut,
+            guests: guestCount,
+            nights,
+            totalAmount: total,
+            paymentMethod: form.paymentMethod,
+            receiptAttached: Boolean(uploadedReceipt?.url)
+          }
+        })
       });
       setConfirmed(payload.booking);
     } catch (err) {

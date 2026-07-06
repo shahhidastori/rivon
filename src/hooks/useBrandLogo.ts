@@ -33,6 +33,21 @@ function readStoredBrandLogo(initialLogo: string) {
   }
 }
 
+async function resolveBrandLogoUrl(logoUrl: string, fallbackLogo: string) {
+  if (!logoUrl.startsWith("/uploads/")) return logoUrl;
+
+  try {
+    const response = await fetch(logoUrl, { cache: "no-store" });
+    if (response.ok && response.headers.get("content-type")?.startsWith("image/")) {
+      return logoUrl;
+    }
+  } catch {
+    // Fall back to the bundled logo when uploaded assets are unavailable.
+  }
+
+  return fallbackLogo;
+}
+
 export function useBrandLogo(initialLogo = fallbackBrandLogo) {
   const [logoUrl, setLogoUrl] = useState(() => readStoredBrandLogo(initialLogo));
 
@@ -50,16 +65,19 @@ export function useBrandLogo(initialLogo = fallbackBrandLogo) {
 
     publicApi
       .cms()
-      .then((payload) => {
-        if (!cancelled) {
-          const branding = payload.sections.branding;
-          const nextLogoUrl = versionedBrandLogoUrl(branding?.imageUrl, branding?.updatedAt, initialLogo);
-          setLogoUrl(nextLogoUrl);
-          try {
-            localStorage.setItem(BRAND_LOGO_STORAGE_KEY, nextLogoUrl);
-          } catch {
-            // Storage can be unavailable in restricted browser modes.
-          }
+      .then(async (payload) => {
+        if (cancelled) return;
+
+        const branding = payload.sections.branding;
+        const cmsLogoUrl = versionedBrandLogoUrl(branding?.imageUrl, branding?.updatedAt, initialLogo);
+        const nextLogoUrl = await resolveBrandLogoUrl(cmsLogoUrl, initialLogo);
+        if (cancelled) return;
+
+        setLogoUrl(nextLogoUrl);
+        try {
+          localStorage.setItem(BRAND_LOGO_STORAGE_KEY, nextLogoUrl);
+        } catch {
+          // Storage can be unavailable in restricted browser modes.
         }
       })
       .catch(() => {

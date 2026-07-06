@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   BedDouble,
@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import type { Room } from "../../types";
 import { currency, publicApi } from "../../lib/api";
+import { trackAnalyticsEvent } from "../../lib/analytics";
 import { Button, EmptyState, Field, SelectField, StatusBadge } from "../../components/ui";
 import { GlassDatePicker, addDays, fromDateInputValue, toDateInputValue } from "../../components/GlassDatePicker";
 import { RoomResultsSkeleton } from "../../components/Skeletons";
@@ -26,6 +27,7 @@ export function RoomsPage() {
   const [types, setTypes] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const trackedListingKey = useRef("");
   const today = useMemo(() => toDateInputValue(new Date()), []);
 
   useEffect(() => {
@@ -57,6 +59,20 @@ export function RoomsPage() {
   useEffect(() => {
     setFilterDates({ checkIn: initial.checkIn, checkOut: initial.checkOut });
   }, [initial.checkIn, initial.checkOut]);
+
+  useEffect(() => {
+    if (loading || error) return;
+    const key = `${params.toString()}|${rooms.length}`;
+    if (trackedListingKey.current === key) return;
+    trackedListingKey.current = key;
+    trackAnalyticsEvent("room_listing_view", {
+      pageName: "Room Listing Page",
+      metadata: {
+        filters: Object.fromEntries(params.entries()),
+        resultsCount: rooms.length
+      }
+    });
+  }, [error, loading, params, rooms.length]);
 
   const updateFilterCheckIn = (value: string) => {
     setFilterDates((current) => {

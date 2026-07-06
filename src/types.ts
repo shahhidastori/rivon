@@ -106,3 +106,74 @@ export type AdminProfile = {
   email: string;
   role: string;
 };
+
+export type AnalyticsEventType =
+  | "page_view"
+  | "landing_page_view"
+  | "room_listing_view"
+  | "room_detail_view"
+  | "booking_started"
+  | "booking_preview_view"
+  | "guest_details_view"
+  | "payment_step_view"
+  | "booking_completed"
+  | "booking_cancelled"
+  | "booking_abandoned";
+
+export type AnalyticsContext = {
+  pageUrl?: string;
+  pageName?: string;
+  sessionId?: string;
+  visitorId?: string;
+  userId?: string;
+  roomId?: string;
+  deviceType?: string;
+  browser?: string;
+  referrer?: string;
+  metadata?: Record<string, unknown>;
+};
+
+export type AnalyticsReport = {
+  range: {
+    key: "today" | "7d" | "30d" | "month" | "custom";
+    startDate: string;
+    endDate: string;
+  };
+  summary: {
+    totalVisits: number;
+    uniqueVisitors: number;
+    newVisitors: number;
+    returningVisitors: number;
+    bookingStarted: number;
+    bookingCompleted: number;
+    bookingCancelled: number;
+    abandonedBookings: number;
+    visitToBookingConversionRate: number;
+    bookingCompletionRate: number;
+    bookingAbandonmentRate: number;
+    cancellationRate: number;
+  };
+  trends: {
+    landingVisitsLast7Days: Array<{ date: string; label: string; count: number; amount?: number }>;
+    completedBookings: Array<{ date: string; label: string; count: number; amount: number }>;
+    cancelledBookings: Array<{ date: string; label: string; count: number; amount?: number }>;
+  };
+  charts: {
+    pageVisits: Array<{ label: string; count: number }>;
+    funnel: Array<{ eventType: AnalyticsEventType; label: string; count: number }>;
+    deviceUsage: Array<{ label: string; count: number }>;
+    browserUsage: Array<{ label: string; count: number }>;
+    topReferrers: Array<{ label: string; count: number }>;
+  };
+  tables: {
+    topVisitedRooms: Array<{ roomId: string; roomName: string; count: number; amount: number }>;
+    mostBookedRooms: Array<{ roomId: string; roomName: string; count: number; amount: number }>;
+    highViewLowBookingRooms: Array<{
+      roomId: string;
+      roomName: string;
+      views: number;
+      bookings: number;
+      conversionRate: number;
+    }>;
+  };
+};

@@ -142,6 +142,31 @@ model Booking {
   @@index([status])
 }
 
+model AnalyticsEvent {
+  id           String   @id @default(cuid())
+  eventType    String
+  pageUrl      String?
+  pageName     String?
+  sessionId    String?
+  visitorId    String?
+  userId       String?
+  bookingId    String?
+  roomId       String?
+  deviceType   String?
+  browser      String?
+  referrer     String?
+  metadataJson String?
+  createdAt    DateTime @default(now())
+
+  @@index([eventType])
+  @@index([createdAt])
+  @@index([sessionId])
+  @@index([visitorId])
+  @@index([bookingId])
+  @@index([roomId])
+  @@index([eventType, createdAt])
+}
+
 model Payment {
   id            String              @id @default(cuid())
   bookingId     String

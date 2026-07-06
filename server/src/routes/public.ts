@@ -6,16 +6,17 @@ import { Request, Response, Router } from "express";
 import multer from "multer";
 import { BookingStatus, PaymentMethod, PaymentStatus } from "@prisma/client";
 import { prisma } from "../db.js";
+import { recordAnalyticsEvent } from "../analytics.js";
 import {
   activeBookingStatuses,
   calculateNights,
-  generateReference,
+  generateUniqueReference,
   parseDate,
   parseMetadata,
   serializeBooking,
   serializeRoom
 } from "../utils.js";
-import { bookingLookupSchema, publicBookingSchema } from "../validators.js";
+import { analyticsEventSchema, bookingLookupSchema, publicBookingSchema } from "../validators.js";
 
 export const publicRouter = Router();
 
@@ -85,6 +86,16 @@ publicRouter.post("/booking-receipts", receiptUpload.single("receipt"), (req, re
     url: `/uploads/receipts/${req.file.filename}`,
     filename: req.file.filename
   });
+});
+
+publicRouter.post("/analytics/events", async (req, res, next) => {
+  try {
+    const payload = analyticsEventSchema.parse(req.body);
+    await recordAnalyticsEvent(payload, req);
+    res.status(202).json({ ok: true });
+  } catch (error) {
+    next(error);
+  }
 });
 
 publicRouter.get("/cms", async (req, res, next) => {
@@ -222,6 +233,11 @@ publicRouter.post("/bookings", async (req, res, next) => {
       payload.paymentMethod === PaymentMethod.CARD ? PaymentStatus.PAID : PaymentStatus.UNPAID;
 
     const booking = await prisma.$transaction(async (tx) => {
+      const reference = await generateUniqueReference(async (candidate) => {
+        const match = await tx.booking.findUnique({ where: { reference: candidate }, select: { id: true } });
+        return Boolean(match);
+      });
+
       const customer = await tx.customer.create({
         data: {
           firstName: payload.customer.firstName,
@@ -234,7 +250,7 @@ publicRouter.post("/bookings", async (req, res, next) => {
 
       return tx.booking.create({
         data: {
-          reference: generateReference(),
+          reference,
           customerId: customer.id,
           roomId: room.id,
           checkIn,
@@ -268,6 +284,27 @@ publicRouter.post("/bookings", async (req, res, next) => {
       });
     });
 
+    const analyticsContext = payload.analytics;
+    void recordAnalyticsEvent(
+      {
+        ...(analyticsContext || {}),
+        eventType: "booking_completed",
+        bookingId: booking.id,
+        roomId: room.id,
+        metadata: {
+          ...(analyticsContext?.metadata || {}),
+          reference: booking.reference,
+          roomName: room.name,
+          roomType: room.type,
+          checkIn: payload.checkIn,
+          checkOut: payload.checkOut,
+          guests: payload.guests,
+          totalAmount
+        }
+      },
+      req
+    ).catch(() => undefined);
+
     res.status(201).json({ booking: serializeBooking(booking) });
   } catch (error) {
     next(error);
@@ -297,7 +334,8 @@ publicRouter.patch("/bookings/:reference/cancel", async (req, res, next) => {
   try {
     const payload = bookingLookupSchema.parse({
       reference: req.params.reference,
-      email: req.body.email
+      email: req.body.email,
+      analytics: req.body.analytics
     });
 
     const booking = await prisma.booking.findFirst({
@@ -318,6 +356,25 @@ publicRouter.patch("/bookings/:reference/cancel", async (req, res, next) => {
       data: { status: "CANCELLED" },
       include: bookingInclude
     });
+
+    const analyticsContext = payload.analytics;
+    void recordAnalyticsEvent(
+      {
+        ...(analyticsContext || {}),
+        eventType: "booking_cancelled",
+        bookingId: cancelled.id,
+        roomId: cancelled.roomId,
+        metadata: {
+          ...(analyticsContext?.metadata || {}),
+          reference: cancelled.reference,
+          roomName: cancelled.room.name,
+          roomType: cancelled.room.type,
+          status: cancelled.status,
+          cancellationReason: typeof req.body.reason === "string" ? req.body.reason : ""
+        }
+      },
+      req
+    ).catch(() => undefined);
 
     res.json({ booking: serializeBooking(cancelled) });
   } catch (error) {
