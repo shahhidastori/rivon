@@ -335,8 +335,10 @@ function DonutChart({ data }: { data: ChartRow[] }) {
   return (
     <div className="analytics-donut-wrap">
       <div className="analytics-donut" style={{ background: `conic-gradient(${gradient})` }}>
-        <strong>{formatNumber(total)}</strong>
-        <span>events</span>
+        <div className="analytics-donut-center">
+          <strong>{formatNumber(total)}</strong>
+          <span>events</span>
+        </div>
       </div>
       <div className="analytics-donut-legend">
         {data.length === 0 ? <span>No device data yet</span> : null}

@@ -7,6 +7,13 @@ import { BookingStatus, PaymentMethod, PaymentStatus, Prisma } from "@prisma/cli
 import { prisma } from "../db.js";
 import { recordAnalyticsEvent } from "../analytics.js";
 import { buildAnalyticsReport } from "../analytics-report.js";
+import { uploadLimiter } from "../security.js";
+import {
+  assertSafeUploadedFile,
+  imageUploadMimeTypes,
+  isAllowedUploadMime,
+  safeUploadFilename
+} from "../uploads.js";
 import {
   activeBookingStatuses,
   calculateNights,
@@ -37,21 +44,19 @@ fs.mkdirSync(uploadDir, { recursive: true });
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, uploadDir),
   filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const base = path
-      .basename(file.originalname, ext)
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)+/g, "");
-    cb(null, `${Date.now()}-${base || "room"}${ext}`);
+    try {
+      cb(null, safeUploadFilename(imageUploadMimeTypes, file.mimetype, "image"));
+    } catch (error) {
+      cb(error instanceof Error ? error : new Error("Unsupported image upload type."), "");
+    }
   }
 });
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 5 * 1024 * 1024, files: 1, fields: 0, parts: 2 },
   fileFilter: (_req, file, cb) => {
-    if (!file.mimetype.startsWith("image/")) {
+    if (!isAllowedUploadMime(imageUploadMimeTypes, file.mimetype)) {
       cb(new Error("Only image uploads are allowed."));
       return;
     }
@@ -190,15 +195,16 @@ async function createBooking(payload: ReturnType<typeof adminBookingSchema.parse
   });
 }
 
-adminRouter.post("/uploads", upload.single("image"), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ message: "No image file uploaded." });
+adminRouter.post("/uploads", uploadLimiter, upload.single("image"), async (req, res, next) => {
+  try {
+    await assertSafeUploadedFile(req.file, imageUploadMimeTypes, "Image");
+    res.status(201).json({
+      url: `/uploads/${req.file!.filename}`,
+      filename: req.file!.filename
+    });
+  } catch (error) {
+    next(error);
   }
-
-  res.status(201).json({
-    url: `/uploads/${req.file.filename}`,
-    filename: req.file.filename
-  });
 });
 
 adminRouter.get("/dashboard", async (_req, res, next) => {

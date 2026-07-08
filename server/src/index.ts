@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import cors from "cors";
 import express, { NextFunction, Request, Response } from "express";
+import helmet from "helmet";
 import { ZodError } from "zod";
 import { Prisma } from "@prisma/client";
 import { requireAdmin } from "./auth.js";
@@ -10,6 +11,7 @@ import { authRouter } from "./routes/auth.js";
 import { publicRouter } from "./routes/public.js";
 import { adminRouter } from "./routes/admin.js";
 import { ensureBaselineContent } from "./bootstrap.js";
+import { apiLimiter } from "./security.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,10 +20,50 @@ const app = express();
 const port = Number(process.env.PORT || 4000);
 const clientOrigin = process.env.CLIENT_ORIGIN || "http://localhost:5173";
 const uploadsDir = path.resolve(__dirname, "../uploads");
+const allowedOrigins = clientOrigin
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
+function isSafeClientErrorMessage(message: string) {
+  if (!message || message.length > 180) return false;
+  if (message.includes("\n")) return false;
+  return !/(prisma|database|sql|stack|invocation|querying|enoent|eacces)/i.test(message);
+}
+
+app.disable("x-powered-by");
+app.set("trust proxy", 1);
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        baseUri: ["'self'"],
+        connectSrc: ["'self'"],
+        fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
+        formAction: ["'self'"],
+        frameAncestors: ["'none'"],
+        frameSrc: ["'self'", "https://www.google.com"],
+        imgSrc: ["'self'", "data:", "blob:", "https:"],
+        objectSrc: ["'none'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        upgradeInsecureRequests: process.env.NODE_ENV === "production" ? [] : null
+      }
+    },
+    crossOriginEmbedderPolicy: false,
+    referrerPolicy: { policy: "strict-origin-when-cross-origin" }
+  })
+);
 app.use(
   cors({
-    origin: clientOrigin,
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error("Not allowed by CORS."));
+    },
     credentials: true
   })
 );
@@ -42,6 +84,7 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true, service: "hotel-booking-platform" });
 });
 
+app.use("/api", apiLimiter);
 app.use("/api/auth", authRouter);
 app.use("/api/public", publicRouter);
 app.use("/api/admin", requireAdmin, adminRouter);
@@ -84,6 +127,10 @@ app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
 
   if (error instanceof Error) {
     const status = error.message.includes("not available") ? 409 : 400;
+    if (process.env.NODE_ENV === "production" && !isSafeClientErrorMessage(error.message)) {
+      console.error("Request failed.", error);
+      return res.status(status).json({ message: "Request failed." });
+    }
     return res.status(status).json({ message: error.message });
   }
 

@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "concurrently -k \"npm run server:dev\" \"npm run client:dev\"",
     "server:dev": "tsx watch server/src/index.ts",
-    "client:dev": "vite --host 0.0.0.0",
+    "client:dev": "vite --host 127.0.0.1",
     "build": "tsc -p tsconfig.server.json && vite build",
     "build:render": "prisma generate --schema prisma/schema.production.prisma && tsc -p tsconfig.server.json && vite build",
     "start": "NODE_ENV=production node dist/server/index.js",
@@ -28,9 +28,11 @@
     "date-fns": "^3.6.0",
     "dotenv": "^16.5.0",
     "express": "^4.19.2",
+    "express-rate-limit": "^8.5.2",
+    "helmet": "^8.2.0",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.468.0",
-    "multer": "^2.1.1",
+    "multer": "^2.2.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.30.1",
@@ -45,14 +47,14 @@
     "@types/node": "^20.14.10",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^6.0.3",
     "concurrently": "^8.2.2",
     "eslint": "^8.57.0",
     "eslint-plugin-react-hooks": "^4.6.2",
     "prisma": "^6.9.0",
     "tsx": "^4.16.2",
     "typescript": "^5.5.3",
-    "@vitejs/plugin-react": "^4.5.1",
-    "vite": "^5.4.11"
+    "vite": "^8.1.3"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

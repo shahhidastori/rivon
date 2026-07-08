@@ -7,8 +7,8 @@ import { useBrandLogo } from "../../hooks/useBrandLogo";
 export function LoginPage() {
   const { admin, login } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState("admin@hotel.test");
-  const [password, setPassword] = useState("password123");
+  const [email, setEmail] = useState(import.meta.env.DEV ? "admin@hotel.test" : "");
+  const [password, setPassword] = useState(import.meta.env.DEV ? "password123" : "");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const logoUrl = useBrandLogo();
@@ -32,7 +32,9 @@ export function LoginPage() {
   return (
     <main className="admin-login-page">
       <form className="login-card" onSubmit={submit}>
-        <img className="login-logo" src={logoUrl} alt="Hotel logo" />
+        <div className="login-logo-shell">
+          <img className="login-logo" src={logoUrl} alt="Hotel logo" />
+        </div>
         <h1>Admin Login</h1>
         <p>Manage rooms, bookings, customers, and website content.</p>
         {error ? <div className="alert error">{error}</div> : null}

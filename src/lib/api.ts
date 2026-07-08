@@ -120,7 +120,18 @@ export const authApi = {
       method: "POST",
       body: JSON.stringify({ email, password })
     }),
-  me: () => apiRequest<{ admin: AdminProfile }>("/api/auth/me", { auth: true })
+  me: () => apiRequest<{ admin: AdminProfile }>("/api/auth/me", { auth: true }),
+  updateProfile: (body: {
+    name: string;
+    email: string;
+    currentPassword?: string;
+    newPassword?: string;
+  }) =>
+    apiRequest<{ token: string; admin: AdminProfile }>("/api/auth/me", {
+      auth: true,
+      method: "PATCH",
+      body: JSON.stringify(body)
+    })
 };
 
 export const adminApi = {

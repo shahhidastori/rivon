@@ -1,8 +1,14 @@
 import type { NextFunction, Request, Response } from "express";
-import jwt from "jsonwebtoken";
+import jwt, { JwtPayload } from "jsonwebtoken";
 import { prisma } from "./db.js";
 
-const jwtSecret = process.env.JWT_SECRET || "dev-only-secret-change-me";
+const rawJwtSecret = process.env.JWT_SECRET || "";
+
+if (process.env.NODE_ENV === "production" && rawJwtSecret.length < 32) {
+  throw new Error("JWT_SECRET must be set to at least 32 characters in production.");
+}
+
+const jwtSecret = rawJwtSecret || "dev-only-secret-change-me";
 
 export type AuthRequest = Request & {
   admin?: {
@@ -26,11 +32,19 @@ export async function requireAdmin(req: AuthRequest, res: Response, next: NextFu
   }
 
   try {
-    const decoded = jwt.verify(token, jwtSecret) as { id: string };
+    const decoded = jwt.verify(token, jwtSecret, { algorithms: ["HS256"] }) as JwtPayload & { id?: string };
+    if (!decoded.id) {
+      return res.status(401).json({ message: "Invalid or expired admin session." });
+    }
+
     const admin = await prisma.adminUser.findUnique({ where: { id: decoded.id } });
 
     if (!admin) {
       return res.status(401).json({ message: "Admin account no longer exists." });
+    }
+
+    if (decoded.iat && decoded.iat * 1000 + 5000 < admin.updatedAt.getTime()) {
+      return res.status(401).json({ message: "Admin session has expired. Please log in again." });
     }
 
     req.admin = {

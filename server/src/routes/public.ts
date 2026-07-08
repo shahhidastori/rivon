@@ -7,6 +7,13 @@ import multer from "multer";
 import { BookingStatus, PaymentMethod, PaymentStatus } from "@prisma/client";
 import { prisma } from "../db.js";
 import { recordAnalyticsEvent } from "../analytics.js";
+import { analyticsLimiter, publicWriteLimiter, uploadLimiter } from "../security.js";
+import {
+  assertSafeUploadedFile,
+  isAllowedUploadMime,
+  receiptUploadMimeTypes,
+  safeUploadFilename
+} from "../uploads.js";
 import {
   activeBookingStatuses,
   calculateNights,
@@ -29,21 +36,19 @@ fs.mkdirSync(receiptUploadDir, { recursive: true });
 const receiptStorage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, receiptUploadDir),
   filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const base = path
-      .basename(file.originalname, ext)
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)+/g, "");
-    cb(null, `${Date.now()}-${base || "receipt"}${ext}`);
+    try {
+      cb(null, safeUploadFilename(receiptUploadMimeTypes, file.mimetype, "receipt"));
+    } catch (error) {
+      cb(error instanceof Error ? error : new Error("Unsupported receipt upload type."), "");
+    }
   }
 });
 
 const receiptUpload = multer({
   storage: receiptStorage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 5 * 1024 * 1024, files: 1, fields: 0, parts: 2 },
   fileFilter: (_req, file, cb) => {
-    if (!file.mimetype.startsWith("image/") && file.mimetype !== "application/pdf") {
+    if (!isAllowedUploadMime(receiptUploadMimeTypes, file.mimetype)) {
       cb(new Error("Only image or PDF receipts are allowed."));
       return;
     }
@@ -80,15 +85,19 @@ function sendCachedJson(req: Request, res: Response, payload: unknown) {
   return res.type("application/json").send(body);
 }
 
-publicRouter.post("/booking-receipts", receiptUpload.single("receipt"), (req, res) => {
-  if (!req.file) return res.status(400).json({ message: "Receipt file is required." });
-  res.status(201).json({
-    url: `/uploads/receipts/${req.file.filename}`,
-    filename: req.file.filename
-  });
+publicRouter.post("/booking-receipts", uploadLimiter, receiptUpload.single("receipt"), async (req, res, next) => {
+  try {
+    await assertSafeUploadedFile(req.file, receiptUploadMimeTypes, "Receipt");
+    res.status(201).json({
+      url: `/uploads/receipts/${req.file!.filename}`,
+      filename: req.file!.filename
+    });
+  } catch (error) {
+    next(error);
+  }
 });
 
-publicRouter.post("/analytics/events", async (req, res, next) => {
+publicRouter.post("/analytics/events", analyticsLimiter, async (req, res, next) => {
   try {
     const payload = analyticsEventSchema.parse(req.body);
     await recordAnalyticsEvent(payload, req);
@@ -195,7 +204,7 @@ publicRouter.get("/rooms/:slug", async (req, res, next) => {
   }
 });
 
-publicRouter.post("/bookings", async (req, res, next) => {
+publicRouter.post("/bookings", publicWriteLimiter, async (req, res, next) => {
   try {
     const payload = publicBookingSchema.parse(req.body);
     const checkIn = parseDate(payload.checkIn, "Check-in");
@@ -311,7 +320,7 @@ publicRouter.post("/bookings", async (req, res, next) => {
   }
 });
 
-publicRouter.post("/bookings/lookup", async (req, res, next) => {
+publicRouter.post("/bookings/lookup", publicWriteLimiter, async (req, res, next) => {
   try {
     const payload = bookingLookupSchema.parse(req.body);
     const booking = await prisma.booking.findFirst({
@@ -330,7 +339,7 @@ publicRouter.post("/bookings/lookup", async (req, res, next) => {
   }
 });
 
-publicRouter.patch("/bookings/:reference/cancel", async (req, res, next) => {
+publicRouter.patch("/bookings/:reference/cancel", publicWriteLimiter, async (req, res, next) => {
   try {
     const payload = bookingLookupSchema.parse({
       reference: req.params.reference,

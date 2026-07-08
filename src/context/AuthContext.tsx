@@ -6,6 +6,12 @@ type AuthContextValue = {
   admin: AdminProfile | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  updateProfile: (payload: {
+    name: string;
+    email: string;
+    currentPassword?: string;
+    newPassword?: string;
+  }) => Promise<void>;
   logout: () => void;
 };
 
@@ -43,6 +49,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       login: async (email, password) => {
         const result = await authApi.login(email, password);
+        setToken(result.token);
+        setAdmin(result.admin);
+      },
+      updateProfile: async (payload) => {
+        const result = await authApi.updateProfile(payload);
         setToken(result.token);
         setAdmin(result.admin);
       },

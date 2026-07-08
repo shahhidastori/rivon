@@ -20,8 +20,7 @@ const imageMimeTypes: Record<string, string> = {
   ".jpeg": "image/jpeg",
   ".png": "image/png",
   ".webp": "image/webp",
-  ".gif": "image/gif",
-  ".svg": "image/svg+xml"
+  ".gif": "image/gif"
 };
 
 function uploadedAssetPath(uploadUrl: string) {
@@ -39,7 +38,14 @@ async function ensurePersistentBrandLogo() {
   const filePath = uploadedAssetPath(imageUrl);
   if (filePath && fs.existsSync(filePath)) {
     const extension = path.extname(filePath).toLowerCase();
-    const mimeType = imageMimeTypes[extension] || "application/octet-stream";
+    const mimeType = imageMimeTypes[extension];
+    if (!mimeType) {
+      await prisma.cmsSection.update({
+        where: { key: "branding" },
+        data: { imageUrl: null }
+      });
+      return;
+    }
     const file = await fs.promises.readFile(filePath);
     await prisma.cmsSection.update({
       where: { key: "branding" },

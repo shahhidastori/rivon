@@ -15,6 +15,7 @@ import { AdminBookings } from "./pages/admin/AdminBookings";
 import { AdminCustomers } from "./pages/admin/AdminCustomers";
 import { AdminCms } from "./pages/admin/AdminCms";
 import { AdminAnalytics } from "./pages/admin/AdminAnalytics";
+import { AdminProfile } from "./pages/admin/AdminProfile";
 import { trackAnalyticsEvent } from "./lib/analytics";
 
 function ScrollToRouteTarget() {
@@ -133,6 +134,7 @@ export function App() {
           <Route path="customers" element={<AdminCustomers />} />
           <Route path="cms" element={<AdminCms />} />
           <Route path="analytics" element={<AdminAnalytics />} />
+          <Route path="profile" element={<AdminProfile />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

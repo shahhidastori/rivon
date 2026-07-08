@@ -1,5 +1,5 @@
 export const adminSeed = {
-  name: "Hotel Admin",
+  name: "Actual User name",
   email: "admin@hotel.test",
   password: "password123",
   role: "administrator"
