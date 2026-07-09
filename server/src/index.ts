@@ -20,10 +20,17 @@ const app = express();
 const port = Number(process.env.PORT || 4000);
 const clientOrigin = process.env.CLIENT_ORIGIN || "http://localhost:5173";
 const uploadsDir = path.resolve(__dirname, "../uploads");
-const allowedOrigins = clientOrigin
+const configuredOrigins = clientOrigin
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
+
+const allowedOrigins = new Set([
+  ...configuredOrigins,
+  "https://rivonresort.com",
+  "https://www.rivonresort.com",
+  "https://hotel-booking-platform-k25f.onrender.com"
+]);
 
 function isSafeClientErrorMessage(message: string) {
   if (!message || message.length > 180) return false;
@@ -55,10 +62,25 @@ app.use(
     referrerPolicy: { policy: "strict-origin-when-cross-origin" }
   })
 );
+app.use((req, res, next) => {
+  const requestOrigin = req.headers.origin;
+  if (requestOrigin) {
+    try {
+      const originUrl = new URL(requestOrigin);
+      const requestHost = req.headers["x-forwarded-host"] || req.headers.host;
+      if (requestHost && originUrl.host === String(requestHost).split(",")[0].trim()) {
+        allowedOrigins.add(requestOrigin);
+      }
+    } catch {
+      // Invalid Origin headers are rejected by the CORS middleware below.
+    }
+  }
+  next();
+});
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin || allowedOrigins.has(origin)) {
         callback(null, true);
         return;
       }
